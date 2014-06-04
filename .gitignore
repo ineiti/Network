@@ -1,2 +1,5 @@
 nbproject
 .backup
+.hg*
+.idea
+commit
