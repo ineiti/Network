@@ -1,10 +1,21 @@
 require 'singleton'
+require 'helperclasses'
 
 module Network
   class NotSupported < StandardError; end
+  extend HelperClasses::DPuts
+
+  MODEM_ERROR=-1
+  MODEM_CONNECTED=1
+  MODEM_CONNECTING=2
+  MODEM_DISCONNECTING=3
+  MODEM_DISCONNECTED=4
+  MODEM_CONNECTION_ERROR=5
 
   class Modem
     include Singleton
+    extend HelperClasses::DPuts
+    include HelperClasses::DPuts
   
     @@modems = []
     def initialize
@@ -12,7 +23,7 @@ module Network
     end
   
     def self.inherited( other )
-      puts "Inherited from #{other.inspect}"
+      dputs(2){ "Inheriting modem #{other.inspect}" }
       @@modems << other
       super( other )
     end
@@ -33,16 +44,20 @@ module Network
       return true if @@methods_needed.index( name )
       super( name )
     end
+
+    def self.get_sms_time( sms )
+      Time.strptime( sms._Date, '%Y-%m-%d %H:%M:%S')
+    end
   
     def self.present
-      puts "Modems: #{@@modems.inspect}"
+      dputs(3){ "network: #{@@modems.inspect}" }
       @modem = @@modems.find{|m| m.modem_present? }
       @modem and @modem.instance
     end
   end
 
-  Dir[ File.dirname( __FILE__ ) + "/Modems/*.rb"].each{|f|
-    puts "Requiring file #{f}"
+  Dir[ File.dirname( __FILE__ ) + "/modems/*.rb"].each{|f|
+    dputs(3){ "Adding modem-file #{f}" }
     require(f)
   }
 end

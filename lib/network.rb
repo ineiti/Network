@@ -2,23 +2,12 @@
 # Replacement for LibNet
 
 require 'drb'
-require 'modem'
-
-if not respond_to? :dputs
-  DEBUG_LVL=2
-  
-  def dputs(a,&b)
-    puts yield b
-  end
-  
-  def dputs(a,&b)
-    if a <= DEBUG_LVL
-      puts yield b
-    end
-  end
-end
+require 'network/modem'
+require 'helperclasses'
 
 module Network
+  extend HelperClasses::DPuts
+
   class Connection
     def initialize( simul = false )
       @simul = simul
