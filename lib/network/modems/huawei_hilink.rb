@@ -79,6 +79,10 @@ module Network
 	end
       end
 
+      def set_2g
+	Hilink::Network.set_connection_type( "2g" )
+      end
+
       def traffic_reset
         Hilink::Monitoring.traffic_reset
       end
