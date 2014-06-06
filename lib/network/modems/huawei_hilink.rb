@@ -19,35 +19,35 @@ module Network
       end
 
       def connection_start
-	dputs(3){ 'Starting connection' }
+        dputs(3) { 'Starting connection' }
         Hilink::Dialup.connect
       end
 
       def connection_stop
-	dputs(3){ 'Stopping connection' }
+        dputs(3) { 'Stopping connection' }
         Hilink::Dialup.disconnect
       end
 
       def connection_status
         if status = Hilink::Monitoring.status
-          dputs(3){ "#{status.inspect}" }
-        case Hilink::Monitoring.status._ConnectionStatus.to_i
-          when 20,112..115
-            MODEM_DISCONNECTED
-          when 900
-            MODEM_CONNECTING
-          when 901
-            MODEM_CONNECTED
-          when 902
-            MODEM_DISCONNECTED
-          when 903
-            MODEM_DISCONNECTING
-          when 26,32
-            MODEM_CONNECTION_ERROR
-        end
-	else
-	  dputs(1){ "No status received" }
-	  MODEM_ERROR
+          dputs(3) { "#{status.inspect}" }
+          case Hilink::Monitoring.status._ConnectionStatus.to_i
+            when 20, 112..115
+              MODEM_DISCONNECTED
+            when 900
+              MODEM_CONNECTING
+            when 901
+              MODEM_CONNECTED
+            when 902
+              MODEM_DISCONNECTED
+            when 903
+              MODEM_DISCONNECTING
+            when 26, 32
+              MODEM_CONNECTION_ERROR
+          end
+        else
+          dputs(1) { "No status received" }
+          MODEM_ERROR
         end
       end
 
@@ -72,15 +72,15 @@ module Network
 
       def traffic_stats
         if stats = Hilink::Monitoring.traffic_statistics
-	dputs(3){ stats.inspect }
-	{ :rx => stats._TotalDownload, :tx => stats._TotalUpload }
-	else
-	{ :rx => -1, :tx => -1 }
-	end
+          dputs(3) { stats.inspect }
+          {:rx => stats._TotalDownload, :tx => stats._TotalUpload}
+        else
+          {:rx => -1, :tx => -1}
+        end
       end
 
       def set_2g
-	Hilink::Network.set_connection_type( "2g" )
+        Hilink::Network.set_connection_type("2g")
       end
 
       def traffic_reset
