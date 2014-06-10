@@ -6,7 +6,24 @@ require 'network/modem'
 require 'helperclasses'
 
 module Network
+  extend self
   extend HelperClasses::DPuts
+
+  def connection_up
+    log_msg :Network, "Connection goes up"
+    system( "systemctl start openvpn@vpn-profeda-melfi" )
+    #system( "sudo -u fetchmail fetchmail -v -f /etc/fetchmailrc" )
+    system( "postqueue -f" )
+    system( "systemctl start fetchmail" )
+    system( "/opt/profeda/LibNet/Tools/9dnsmasq-internet.sh" )
+  end
+
+  def connection_down
+    log_msg :Network, "Connection goes down"
+    system( "systemctl stop openvpn@vpn-profeda-melfi" )
+    system( "/opt/profeda/LibNet/Tools/9dnsmasq-catchall.sh" )
+    system( "systemctl stop fetchmail" )
+  end
 
   class Connection
     def initialize( simul = false )
