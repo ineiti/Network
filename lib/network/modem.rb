@@ -19,7 +19,6 @@ module Network
   
     @@modems = []
     def initialize
-    
     end
   
     def self.inherited( other )

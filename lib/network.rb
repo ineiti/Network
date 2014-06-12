@@ -13,8 +13,9 @@ module Network
     log_msg :Network, "Connection goes up"
     system( "systemctl start openvpn@vpn-profeda-melfi" )
     #system( "sudo -u fetchmail fetchmail -v -f /etc/fetchmailrc" )
+    system( 'date | mail -s "$( hostname ): Connected" ineiti@profeda.org"' )
     system( "postqueue -f" )
-    system( "systemctl start fetchmail" )
+    system( "systemctl restart fetchmail" )
     system( "/opt/profeda/LibNet/Tools/9dnsmasq-internet.sh" )
   end
 
