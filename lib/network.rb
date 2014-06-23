@@ -11,7 +11,7 @@ module Network
 
   def connection_up
     log_msg :Network, "Connection goes up"
-    system( "systemctl start openvpn@vpn-profeda-melfi" )
+    system( "systemctl start openvpn@vpn-profeda-mas" )
     #system( "sudo -u fetchmail fetchmail -v -f /etc/fetchmailrc" )
     system( 'date | mail -s "$( hostname ): Connected" ineiti@profeda.org"' )
     system( "postqueue -f" )
@@ -21,7 +21,7 @@ module Network
 
   def connection_down
     log_msg :Network, "Connection goes down"
-    system( "systemctl stop openvpn@vpn-profeda-melfi" )
+    system( "systemctl stop openvpn@vpn-profeda-mas" )
     system( "/opt/profeda/LibNet/Tools/9dnsmasq-catchall.sh" )
     system( "systemctl stop fetchmail" )
   end

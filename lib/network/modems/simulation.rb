@@ -39,7 +39,7 @@ module Network
       end
 
       def sms_list
-        if @sms.length == 0
+        if @@sms.length == 0
           []
         else
           list._Messages._Message.map { |msg|

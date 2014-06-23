@@ -44,6 +44,8 @@ module Network
               MODEM_DISCONNECTING
             when 26, 32
               MODEM_CONNECTION_ERROR
+            else
+              MODEM_CONNECTION_ERROR
           end
         else
           dputs(1) { "No status received" }
