@@ -1,4 +1,4 @@
-require 'huawei_modem'
+#require 'huawei_modem'
 require 'helperclasses'
 
 module Network
@@ -6,12 +6,19 @@ module Network
     class HuaweiModem < Modem
       include HelperClasses::DPuts
 
+      def initialize
+        @connection = MODEM_ERROR
+        HuaweiModem::setup
+        connection_status
+      end
+
       def credit_left
-        HuaweiModem::send_ussd('*100#')
+        HuaweiModem::ussd_send('*100#')
+        @huawei_ussd_results['*100#']
       end
 
       def credit_add(code)
-        HuaweiModem::send_ussd("*128*#{code}#")
+        HuaweiModem::ussd_send("*128*#{code}#")
       end
 
       def credit_mn
@@ -21,57 +28,44 @@ module Network
       end
 
       def connection_start
-        dputs(3) { 'Starting connection' }
-        HuaweiModem::Dialup.connect
+        ddputs(3) { 'Starting connection' }
+        @connection = MODEM_CONNECTING
+        Kernel.system('netctl start ppp0')
       end
 
       def connection_stop
-        dputs(3) { 'Stopping connection' }
-        HuaweiModem::Dialup.disconnect
+        ddputs(3) { 'Stopping connection' }
+        @connection = MODEM_DISCONNECTING
+        Kernel.system('netctl stop ppp0')
       end
 
       def connection_status
-        if status = HuaweiModem::Monitoring.status
-          dputs(3) { "#{status.inspect}" }
-          case HuaweiModem::Monitoring.status._ConnectionStatus.to_i
-            when 20, 112..115
-              MODEM_DISCONNECTED
-            when 900
-              MODEM_CONNECTING
-            when 901
-              MODEM_CONNECTED
-            when 902
-              MODEM_DISCONNECTED
-            when 903
-              MODEM_DISCONNECTING
-            when 26, 32
-              MODEM_CONNECTION_ERROR
+        @connection =
+            if Kernel.system('netctl status ppp0 | grep Active') =~ /: active/
+              if Kernel.system('ifconfig ppp0') =~ /ppp0/
+                MODEM_CONNECTED
+              else
+                MODEM_CONNECTING
+              end
             else
-              MODEM_CONNECTION_ERROR
-          end
-        else
-          dputs(1) { "No status received" }
-          MODEM_ERROR
-        end
+              MODEM_DISCONNECTED
+            end
       end
 
       def sms_list
-        list = HuaweiModem::SMS.list
-        if !list or list._Count.to_i == 0
-          []
-        else
-          list._Messages._Message.map { |msg|
-            msg.keep_if { |k, v| %w( Index Phone Content Date ).index k.to_s }.to_sym
-          }.sort_by { |m| m._Index.to_i }
-        end
+        HuaweiModem::sms_scan
+        @huawei_sms.collect { |sms_id, sms|
+          {:Index => sms_id, :Phone => sms[1], :Content => sms[3],
+           :Date => sms[4]}
+        }.sort_by { |m| m._Index.to_i }
       end
 
       def sms_send(nbr, msg)
-        HuaweiModem::SMS.send(nbr, msg)
+        HuaweiModem::sms_send(nbr, msg)
       end
 
       def sms_delete(index)
-        HuaweiModem::SMS.delete(index)
+        HuaweiModem::sms_delete(index)
       end
 
       def traffic_stats
@@ -92,7 +86,7 @@ module Network
       end
 
       def self.modem_present?
-        Kernel.system('lsusb -d 12d1:14db > /dev/null')
+        Kernel.system('lsusb -d 12d1:1506 > /dev/null')
       end
     end
   end
