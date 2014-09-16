@@ -3,6 +3,9 @@
 
 require 'drb'
 require 'network/modem'
+require 'network/operator'
+require 'network/smscontrol'
+require 'network/captive'
 require 'helperclasses'
 
 module Network
@@ -10,20 +13,20 @@ module Network
   extend HelperClasses::DPuts
 
   def connection_up
-    log_msg :Network, "Connection goes up"
-    system( "systemctl start openvpn@vpn-profeda-mas" )
+    log_msg :Network, 'Connection goes up'
+    system('systemctl start openvpn@vpn-profeda-mas')
     #system( "sudo -u fetchmail fetchmail -v -f /etc/fetchmailrc" )
     system( 'date | mail -s "$( hostname ): Connected" ineiti@profeda.org"' )
-    system( "postqueue -f" )
-    system( "systemctl restart fetchmail" )
-    system( "/opt/profeda/LibNet/Tools/9dnsmasq-internet.sh" )
+    system('postqueue -f')
+    system('systemctl restart fetchmail')
+    system('/opt/profeda/LibNet/Tools/9dnsmasq-internet.sh')
   end
 
   def connection_down
-    log_msg :Network, "Connection goes down"
-    system( "systemctl stop openvpn@vpn-profeda-mas" )
-    system( "/opt/profeda/LibNet/Tools/9dnsmasq-catchall.sh" )
-    system( "systemctl stop fetchmail" )
+    log_msg :Network, 'Connection goes down'
+    system('systemctl stop openvpn@vpn-profeda-mas')
+    system('/opt/profeda/LibNet/Tools/9dnsmasq-catchall.sh')
+    system('systemctl stop fetchmail')
   end
 
   class Connection
@@ -31,7 +34,7 @@ module Network
       @simul = simul
       if not @simul
       else
-        dputs(1){"Simulation only"}
+        dputs(1){ 'Simulation only' }
       end
     end
 	
