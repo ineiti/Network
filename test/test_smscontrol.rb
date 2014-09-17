@@ -1,6 +1,7 @@
 DEBUG_LVL=3
+$LOAD_PATH.push '../../HelperClasses/lib', '../lib', '../../Hilink/lib', '../../HuaweiModem/lib'
 
-require '../lib/network'
+require 'network'
 
 include Network
 include HelperClasses::DPuts
@@ -11,6 +12,7 @@ if ! SMScontrol.modem
 end
 
 SMScontrol.modem.set_2g
+SMScontrol.state_goal = MODEM_DISCONNECTED
 SMScontrol.make_connection
 #SMS.rb.modem.sms_send( 100, "internet" )
 

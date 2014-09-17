@@ -5,7 +5,7 @@ require 'drb'
 require 'network/modem'
 require 'network/operator'
 require 'network/smscontrol'
-require 'network/captive'
+#require 'network/captive'
 require 'helperclasses'
 
 module Network

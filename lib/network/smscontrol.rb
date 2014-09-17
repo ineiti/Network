@@ -127,7 +127,7 @@ module Network
       @sms_injected = []
       dputs(3) { "SMS are: #{sms.inspect}" }
       sms.each { |sms|
-        SMSs.create(sms)
+        Kernel.const_defined? :SMSs and SMSs.create(sms)
         log_msg :SMS, "Working on SMS #{sms.inspect}"
         if sms._Content =~ /^cmd:/i
           if (ret = interpret_commands(sms._Content))

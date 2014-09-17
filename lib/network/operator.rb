@@ -37,7 +37,7 @@ module Network
 
     def self.chose( op )
       dputs(3) { "network-operators: #{@@operators.inspect}" }
-      @operator = @@operators.find op or raise 'OperatorNotFound'
+      raise 'OperatorNotFound' unless @operator = @@operators.find( op )
       @operator.instance
     end
   end
