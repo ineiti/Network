@@ -55,7 +55,7 @@ module Network
     end
   end
 
-  Dir[ File.dirname( __FILE__ ) + "/modems/*.rb"].each{|f|
+  Dir[ File.dirname( __FILE__ ) + '/modems/*.rb'].each{|f|
     dputs(3){ "Adding modem-file #{f}" }
     require(f)
   }

@@ -1,9 +1,9 @@
-require 'hilink'
+require 'hilinkmodem'
 require 'helperclasses'
 
 module Network
   module Modems
-    class HuaweiHilink < Modem
+    class Hilink < Modem
       include HelperClasses::DPuts
 
       def credit_left
@@ -20,18 +20,18 @@ module Network
 
       def connection_start
         dputs(3) { 'Starting connection' }
-        Hilink::Dialup.connect
+        HilinkModem::Dialup.connect
       end
 
       def connection_stop
         dputs(3) { 'Stopping connection' }
-        Hilink::Dialup.disconnect
+        HilinkModem::Dialup.disconnect
       end
 
       def connection_status
-        if status = Hilink::Monitoring.status
+        if status = HilinkModem::Monitoring.status
           dputs(3) { "#{status.inspect}" }
-          case Hilink::Monitoring.status._ConnectionStatus.to_i
+          case HilinkModem::Monitoring.status._ConnectionStatus.to_i
             when 20, 112..115
               MODEM_DISCONNECTED
             when 900
@@ -54,7 +54,7 @@ module Network
       end
 
       def sms_list
-        list = Hilink::SMS.list
+        list = HilinkModem::SMS.list
         if !list or list._Count.to_i == 0
           []
         else
@@ -65,15 +65,15 @@ module Network
       end
 
       def sms_send(nbr, msg)
-        Hilink::SMS.send(nbr, msg)
+        HilinkModem::SMS.send(nbr, msg)
       end
 
       def sms_delete(index)
-        Hilink::SMS.delete(index)
+        HilinkModem::SMS.delete(index)
       end
 
       def traffic_stats
-        if stats = Hilink::Monitoring.traffic_statistics
+        if stats = HilinkModem::Monitoring.traffic_statistics
           dputs(3) { stats.inspect }
           {:rx => stats._TotalDownload, :tx => stats._TotalUpload}
         else
@@ -82,11 +82,11 @@ module Network
       end
 
       def set_2g
-        Hilink::Network.set_connection_type("2g")
+        HilinkModem::Network.set_connection_type("2g")
       end
 
       def traffic_reset
-        Hilink::Monitoring.traffic_reset
+        HilinkModem::Monitoring.traffic_reset
       end
 
       def self.modem_present?

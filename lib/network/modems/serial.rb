@@ -1,12 +1,12 @@
 #require 'huawei_modem'
 require 'helperclasses'
-require 'HuaweiModem'
+require 'serialmodem'
 
 module Network
   module Modems
-    class SerialModem < Modem
+    class Serial < Modem
       include HelperClasses::DPuts
-      include HuaweiModem
+      include SerialModem
 
       def initialize
         @connection = MODEM_ERROR
@@ -44,7 +44,7 @@ module Network
       def connection_status
         @connection =
             if %x[ netctl status ppp0 | grep Active ] =~ /: active/
-              if Kernel.system('ifconfig ppp0')
+              if Kernel.system('grep -q ppp0 /proc/net/dev')
                 if %x[ ifconfig ppp0 ]
                   MODEM_CONNECTED
                 else

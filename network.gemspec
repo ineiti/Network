@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
   s.files       = ["lib/network.rb",
  	"lib/network/",
  	"lib/network/modem.rb",
- 	"lib/network/modems/huawei_hilink.rb"
+ 	"lib/network/modems/hilink.rb"
 ]
   s.add_runtime_dependency 'hilink', '~> 0.1'
   s.add_runtime_dependency 'helperclasses', '~> 0.1'

@@ -1,4 +1,3 @@
-require 'hilink'
 require 'helperclasses'
 
 module Network
@@ -49,24 +48,16 @@ module Network
       end
 
       def sms_send(nbr, msg)
-        Hilink::SMS.send(nbr, msg)
       end
 
       def sms_delete(index)
-        Hilink::SMS.delete(index)
       end
 
       def traffic_stats
-        if stats = Hilink::Monitoring.traffic_statistics
-          dputs(3) { stats.inspect }
-          {:rx => stats._TotalDownload, :tx => stats._TotalUpload}
-        else
-          {:rx => -1, :tx => -1}
-        end
+        {:rx => -1, :tx => -1}
       end
 
       def set_2g
-        Hilink::Network.set_connection_type("2g")
       end
 
       def traffic_reset
