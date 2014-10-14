@@ -13,7 +13,7 @@ module Network
     @modem = Modem.present
 
     @state_now = MODEM_DISCONNECTED
-    @state_goal = UNKNOWN
+    @state_goal = MODEM_DISCONNECTED
     @send_status = false
     @state_error = 0
     @phone_main = 99836457
@@ -121,7 +121,7 @@ module Network
       if @send_status
         @modem.sms_send(@phone_main, interpret_commands('cmd:status').join('::'))
         @send_status = false
-        send_email
+        SMSinfo.send_email
       end
       sms = @modem.sms_list.concat(@sms_injected)
       @sms_injected = []
@@ -145,7 +145,7 @@ module Network
                   @send_status = true
               end
             when :Tigo
-              log_msg :SMS, 'Got message from Tigo'
+              log_msg :SMS, "Got message from Tigo: #{sms.inspect}"
               case sms._Content
                 when /200.*cfa/i
                   @state_goal = MODEM_DISCONNECTED

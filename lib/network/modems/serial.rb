@@ -16,7 +16,7 @@ module Network
 
       def credit_left
         ussd_send('*100#')
-        @huawei_ussd_results['*100#']
+        @serial_ussd_results['*100#']
       end
 
       def credit_add(code)
@@ -60,14 +60,18 @@ module Network
 
       def sms_list
         sms_scan
-        @huawei_sms.collect { |sms_id, sms|
-          {:Index => sms_id, :Phone => sms[1], :Content => sms[3],
-           :Date => sms[4]}
+        @serial_sms.collect { |sms_id, sms|
+          {:Index => sms_id, :Phone => sms[1], :Date => sms[3],
+           :Content => sms[4]}
         }.sort_by { |m| m._Index.to_i }
       end
 
       def traffic_stats
         {rx: 0, tx: 0}
+      end
+
+      def traffic_reset
+
       end
 
       def set_2g
