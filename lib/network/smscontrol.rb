@@ -145,6 +145,7 @@ module Network
                   @send_status = true
               end
             when :Tigo
+              log_msg :SMS, 'Got message from Tigo'
               case sms._Content
                 when /200.*cfa/i
                   @state_goal = MODEM_DISCONNECTED

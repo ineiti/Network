@@ -1,5 +1,6 @@
 module Network
   module Captive
+    extend self
 # Iptable-rules:
 # filter:FCAPTIVE - should be called at the end of the filter:FORWARD-table
 #   allows new users and finishes with a BLOCK
@@ -9,19 +10,17 @@ module Network
 # nat:INTERNET - redirects to the proxy or direct
 #   internet-access
 
-    IPS_IDLE=$RUN/ips_idle
-    MAC_LIST=$LOG/allowed_macs
-    IP_LIST=$LOG/allowed_ips
-    RESTRICTED=$RUN/restricted
-    touch $MAC_LIST $IP_LIST $IPS_IDLE $RESTRICTED
+    @ips_idle = []
+    @mac_list = []
+    @ip_list = []
+    @restricted = []
 
-    def iptables(cmds)
-      %x[ iptables #{ cmds } ]
+    def iptables(*cmds)
+      %x[ iptables #{ cmds.join(' ') } ]
     end
 
-    IPNAT="iptables -t nat"
-    def ipnat(cmds)
-      iptables "-t nat #{cmds}"
+    def ipnat(*cmds)
+      iptables "-t nat #{cmds.join(' ')}"
     end
 
     def captive_ip(op, ip)
@@ -44,9 +43,8 @@ module Network
     end
 
     def captive_ip_check(ip)
-      if ["$1"]; then
-        grep -q $1 $IP_LIST
-      end
+      return unless ip
+      grep -q $1 $IP_LIST
     end
 
     def captive_ip_add()
