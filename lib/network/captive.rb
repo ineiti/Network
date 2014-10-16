@@ -44,31 +44,29 @@ module Network
 
     def captive_ip_check(ip)
       return unless ip
-      grep -q $1 $IP_LIST
+      !@ip_list.index ip
     end
 
-    def captive_ip_add()
-      if !captive_ip_check $1; then
-        echo $1 >> $IP_LIST
-        captive_ip_accept $1
+    def captive_ip_add(ip)
+      if !captive_ip_check ip; then
+        @ip_list.push ip
+        captive_ip_accept ip
       end
     end
 
-    def captive_ip_del()
-      grep -v $1 $IP_LIST > /tmp/i ps
-      mv /tmp/i ps $IP_LIST
-      captive_ip_deny $1
+    def captive_ip_del(ip)
+      @ip_list.remove ip
+      captive_ip_deny ip
     end
 
-    def captive_mac_accept()
-      if !iptables -L
-        FCAPTIVE -n | grep -qi $1; then
-        MAC_IPT="-m mac --mac-source $1"
-        iptables -I FCAPTIVE $MAC_IPT -j ACCEPT
-        $IPNAT -I CAPTIVE $MAC_IPT -j INTERNET
+    def captive_mac_accept(mac)
+      if !iptables '-L FCAPTIVE -n' =~ mac; then
+        mac_ipt="-m mac --mac-source #{mac}"
+        iptables "-I FCAPTIVE #{mac_ipt} -j ACCEPT"
+        ipnat "-I CAPTIVE #{mac_ipt} -j INTERNET"
       end
     end
-
+---
     def captive_mac_deny()
       if iptables -L
         FCAPTIVE -n | grep -qi $1; then

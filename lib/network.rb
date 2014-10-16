@@ -20,15 +20,10 @@ module Network
     log_msg :Network, 'Connection goes up'
     system("systemctl start openvpn@#{vpn_first}")
     #system( "sudo -u fetchmail fetchmail -v -f /etc/fetchmailrc" )
-    log_msg :Network, 'Connection goes up - 1'
     system( 'date | mail -s "$( hostname ): Connected" ineiti@profeda.org' )
-    log_msg :Network, 'Connection goes up - 2'
     system('postqueue -f')
-    log_msg :Network, 'Connection goes up - 3'
     system('systemctl restart fetchmail')
-    log_msg :Network, 'Connection goes up - 4'
     system('/opt/profeda/LibNet/Tools/9dnsmasq-internet.sh')
-    log_msg :Network, 'Connection goes up - 5'
   end
 
   def connection_down

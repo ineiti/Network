@@ -66,6 +66,10 @@ module Network
         }.sort_by { |m| m._Index.to_i }
       end
 
+      def ussd_list
+        @serial_ussd_results
+      end
+
       def traffic_stats
         {rx: 0, tx: 0}
       end
@@ -75,12 +79,17 @@ module Network
       end
 
       def set_2g
-        set_connection_type("2g")
+        set_connection_type('2g')
+      end
+
+      def set_3g
+        set_connection_type('3g')
       end
 
       def self.modem_present?
-        Kernel.system('lsusb -d 12d1:1506 > /dev/null') ||
-            Kernel.system('lsusb -d 12d1:14ac > /dev/null')
+        File.exists? '/dev/ttyUSB2'
+        #Kernel.system('lsusb -d 12d1:1506 > /dev/null') ||
+        #    Kernel.system('lsusb -d 12d1:14ac > /dev/null')
       end
     end
   end
