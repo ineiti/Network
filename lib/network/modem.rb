@@ -49,8 +49,9 @@ module Network
   
     def self.present?
       dputs(3){ "network: #{@@modems.inspect}" }
-      @modem = @@modems.find{|m| m.modem_present? }
-      @modem and @modem.instance
+      @modem = (m = @@modems.find{|m| m.modem_present? }) ? m.instance : nil
+      @modem and @modem.setup
+      @modem
     end
   end
 

@@ -8,9 +8,9 @@ module Network
       include HelperClasses::DPuts
       include SerialModem
 
-      def initialize
+      def setup
         @connection = MODEM_ERROR
-        setup
+        setup_modem
         connection_status
       end
 

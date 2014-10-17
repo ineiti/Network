@@ -1,6 +1,6 @@
 module Network
   module Operators
-    class Airtel
+    class Tawali < Network::Operator
       def credit_left
 
       end

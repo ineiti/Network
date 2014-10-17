@@ -11,7 +11,7 @@ module Network
 
     def initialize( operator )
       @state_now = MODEM_DISCONNECTED
-      @state_goal = MODEM_DISCONNECTED
+      @state_goal = UNKNOWN
       @send_status = false
       @state_error = 0
       @phone_main = 99836457
@@ -25,7 +25,7 @@ module Network
     def chose_operator(name)
       @modem = nil
       @operator = Network::Operator::chose( name ) or return
-      dp @modem = @operator.modem
+      @modem = @operator.modem
     end
 
     def is_connected
@@ -81,7 +81,7 @@ module Network
       return unless @modem
 
       @state_traffic = @operator.internet_left( true )
-      if @state_goal == UNKNOWN
+      if @state_traffic >= 0 and @state_goal == UNKNOWN
         @state_goal = @state_traffic > @min_traffic ?
             MODEM_CONNECTED : MODEM_DISCONNECTED
       end
@@ -127,7 +127,7 @@ module Network
       end
       sms = @modem.sms_list.concat(@sms_injected)
       @sms_injected = []
-      ddputs(3) { "SMS are: #{sms.inspect}" }
+      dputs(3) { "SMS are: #{sms.inspect}" }
       sms.each { |sms|
         Kernel.const_defined? :SMSs and SMSs.create(sms)
         log_msg :SMS, "Working on SMS #{sms.inspect}"
@@ -137,9 +137,8 @@ module Network
             @modem.sms_send(sms._Phone, ret.join('::'))
           end
         else
-          dp @state_traffic = @operator.internet_left( true )
-          dp @operator
-          case @operator
+          @state_traffic = @operator.internet_left( true )
+          case @operator.name
             when :Airtel
               case sms._Content
                 when /votre.*solde/i

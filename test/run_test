@@ -1,0 +1,2 @@
+#!/bin/bash
+ruby -I../../HilinkModem/lib -I../../SerialModem/lib -I../../HelperClasses/lib -I../lib $1

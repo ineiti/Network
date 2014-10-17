@@ -1,6 +1,6 @@
 module Network
   module Operators
-    class Airtel
+    class Airtel < Network::Operator
       @@credit=[
           {cost: 250, volume: 10_000_000, code: 10 },
           {cost: 1_250, volume: 50_000_000, code: 50 },
