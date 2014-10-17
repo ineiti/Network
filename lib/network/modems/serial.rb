@@ -14,21 +14,6 @@ module Network
         connection_status
       end
 
-      def credit_left
-        ussd_send('*100#')
-        @serial_ussd_results['*100#']
-      end
-
-      def credit_add(code)
-        ussd_send("*128*#{code}#")
-      end
-
-      def credit_mn
-      end
-
-      def credit_mb
-      end
-
       def connection_start
         ddputs(3) { 'Starting connection' }
         @connection = MODEM_CONNECTING
@@ -71,7 +56,7 @@ module Network
       end
 
       def traffic_stats
-        {rx: 0, tx: 0}
+        {rx: -1, tx: -1}
       end
 
       def traffic_reset
@@ -87,9 +72,14 @@ module Network
       end
 
       def self.modem_present?
-        File.exists? '/dev/ttyUSB2'
-        #Kernel.system('lsusb -d 12d1:1506 > /dev/null') ||
-        #    Kernel.system('lsusb -d 12d1:14ac > /dev/null')
+        case System.run_str('lsusb')
+          when /12d1:1506/, /12d1:14ac/, /12d1:1c05/
+            true
+          when /airtel-modem/
+            true
+          else
+            false
+        end
       end
     end
   end

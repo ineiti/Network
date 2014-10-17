@@ -2,25 +2,31 @@ require 'helperclasses'
 require 'erb'
 
 module Network
-  module SMScontrol
+  class SMScontrol
     attr_accessor :modem, :state_now, :state_goal, :state_error, :state_traffic,
-                  :max_traffic
-    extend self
+                  :min_traffic
     extend HelperClasses::DPuts
 
     UNKNOWN = -1
 
-    @modem = Modem.present
+    def initialize( operator )
+      @state_now = MODEM_DISCONNECTED
+      @state_goal = MODEM_DISCONNECTED
+      @send_status = false
+      @state_error = 0
+      @phone_main = 99836457
+      @state_traffic = 0
+      @min_traffic = 100000
+      @sms_injected = []
 
-    @state_now = MODEM_DISCONNECTED
-    @state_goal = MODEM_DISCONNECTED
-    @send_status = false
-    @state_error = 0
-    @phone_main = 99836457
-    @state_traffic = 0
-    @max_traffic = 3000000
-    @sms_injected = []
-    @provider = :Tigo
+      chose_operator( operator )
+    end
+
+    def chose_operator(name)
+      @modem = nil
+      @operator = Network::Operator::chose( name ) or return
+      dp @modem = @operator.modem
+    end
 
     def is_connected
       @state_now == MODEM_CONNECTED
@@ -48,7 +54,6 @@ module Network
             disk_usage = %x[ df -h / | tail -n 1 ].gsub(/ +/, ' ').chomp
             ret.push "#{state_to_s} :: #{disk_usage} :: #{Time.now}"
           when /^connect/
-            @modem.traffic_reset
             make_connection
           when /^disconnect/
             @state_goal = MODEM_DISCONNECTED
@@ -73,14 +78,11 @@ module Network
     end
 
     def check_connection
-      @modem = Modem.present
       return unless @modem
 
-      traffic = @modem.traffic_stats
-      dputs(3) { "#{traffic.inspect}" }
-      @state_traffic = traffic._rx.to_i + traffic._tx.to_i
+      dp @state_traffic = @operator.internet_left
       if @state_goal == UNKNOWN
-        @state_goal = @state_traffic < @max_traffic ?
+        @state_goal = @state_traffic > @min_traffic ?
             MODEM_CONNECTED : MODEM_DISCONNECTED
       end
 
@@ -98,7 +100,7 @@ module Network
         if @state_goal == MODEM_DISCONNECTED
           @modem.connection_stop
         elsif @state_goal == MODEM_CONNECTED
-          if @state_traffic > @max_traffic
+          if @state_traffic < @min_traffic
             @state_goal = MODEM_DISCONNECTED
           else
             @modem.connection_start
@@ -125,7 +127,7 @@ module Network
       end
       sms = @modem.sms_list.concat(@sms_injected)
       @sms_injected = []
-      dputs(3) { "SMS are: #{sms.inspect}" }
+      ddputs(3) { "SMS are: #{sms.inspect}" }
       sms.each { |sms|
         Kernel.const_defined? :SMSs and SMSs.create(sms)
         log_msg :SMS, "Working on SMS #{sms.inspect}"
@@ -135,17 +137,19 @@ module Network
             @modem.sms_send(sms._Phone, ret.join('::'))
           end
         else
-          case @provider
+          dp @state_traffic = @operator.internet_left( true )
+          dp @operator
+          case @operator
             when :Airtel
               case sms._Content
                 when /votre.*solde/i
-                  @modem.traffic_reset
                   make_connection
                   log_msg :SMScontrol, 'Airtel - make connection'
                   @send_status = true
               end
             when :Tigo
               log_msg :SMS, "Got message from Tigo: #{sms.inspect}"
+
               case sms._Content
                 when /200.*cfa/i
                   @state_goal = MODEM_DISCONNECTED
@@ -160,18 +164,6 @@ module Network
                   log_msg :SMS, 'Getting internet-credit'
                   @modem.sms_send(1111, 'internet')
                 when /souscription reussie/i
-                  @modem.traffic_reset
-                  case sms._Content
-                    when /100/
-                      @max_traffic = 3000000
-                    when /200/
-                      @max_traffic = 6000000
-                    when /800/
-                      @max_traffic = 30000000
-                  end
-                  if Date.today.wday % 6 == 0
-                    @max_traffic *= 2
-                  end
                   make_connection
                   log_msg :SMS, 'Making connection'
                   @send_status = true

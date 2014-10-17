@@ -28,7 +28,6 @@ module Network
     end
   
     @@methods_needed = [
-      :credit_left, :credit_add, :credit_mn, :credit_mb,
       :connection_start, :connection_stop, :connection_status,
       :sms_list, :sms_send, :sms_delete,
       :modem_present?, :modem_reset
@@ -48,7 +47,7 @@ module Network
       Time.strptime( sms._Date, '%Y-%m-%d %H:%M:%S')
     end
   
-    def self.present
+    def self.present?
       dputs(3){ "network: #{@@modems.inspect}" }
       @modem = @@modems.find{|m| m.modem_present? }
       @modem and @modem.instance
