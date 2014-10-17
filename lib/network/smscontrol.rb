@@ -80,7 +80,7 @@ module Network
     def check_connection
       return unless @modem
 
-      dp @state_traffic = @operator.internet_left
+      @state_traffic = @operator.internet_left( true )
       if @state_goal == UNKNOWN
         @state_goal = @state_traffic > @min_traffic ?
             MODEM_CONNECTED : MODEM_DISCONNECTED
