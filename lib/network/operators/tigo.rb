@@ -28,7 +28,7 @@ module Network
       def credit_left
         ussd_send('100#') or return nil
         if str = @modem.ussd_fetch('*100#')
-          if left = str.match(/([0-9\.])*\s*CFA/)
+          if left = str.match(/([0-9\.]+)*\s*CFA/)
             return left[1]
           end
         end
@@ -54,9 +54,10 @@ module Network
             bytes, mult = left[1].split
             (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                 bytes = (bytes.to_f * 10 ** exp).to_i
-            dputs(2) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
+            dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
             return bytes
           end
+          return 0
         end
         return -1
 =begin

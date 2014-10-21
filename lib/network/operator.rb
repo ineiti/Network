@@ -1,33 +1,27 @@
 module Network
-  class Operator
-    attr_accessor :modem
 
-    include Singleton
-    extend HelperClasses::DPuts
+  module Operator
+    attr_accessor :operators, :methods_needed
+
     include HelperClasses::DPuts
 
-    @@operators = {}
+    MISSING = -1
+    CONNECTED = 1
+    DISCONNECTED = 2
+    ERROR = 3
 
-    def self.inherited(other)
-      ddputs(2) { "Inheriting operator #{other.inspect}" }
-      @@operators[other.to_s.sub(/.*::/, '')] = other
-      dp @@operators.inspect
-      super(other)
-    end
+    @operators = {}
+    @operator = nil
 
-    @@methods_needed = [
-        :credit_left, :credit_add, :credit_send,
-        :internet_left, :internet_add, :internet_cost
+    @methods_needed = [
+        :sms_list, :sms_send, :sms_delete,
+        :internet_left, :internet_add,
+        :credit_left, :credit_add, :credit_send
     ]
 
-    def method_missing(name, *args)
-      raise NotSupported if @@methods_needed.index(name)
-      super(name, args)
-    end
-
-    def respond_to?(name)
-      return true if @@methods_needed.index(name)
-      super(name)
+    def method_missing( name, *args )
+      super( name, args ) unless @methods_needed.index( name )
+      @operator ? @operator.send( name, args) : raise NoOperator
     end
 
     def self.list
@@ -37,28 +31,32 @@ module Network
     def self.chose(op)
       @modem = Network::Modem.present? or raise 'NoModemPresent'
 
-      ddputs(3) { "network-operators: #{@@operators.inspect}" }
+      dputs(3) { "network-operators: #{@@operators.inspect}" }
       raise 'OperatorNotFound' unless @@operators.has_key? op.to_s
       @operator = @@operators[op.to_s].instance
       @operator.modem = @modem
-#      @operator.instance
-#      @operator = Network::Operators::Tigo.instance
-      @last_traffic = Time.now - 60
-      if @modem.present?
-        @get_vars = Thread.new {
-          %w( credit_left, internet_left ).each { |cmd|
-            ddputs(2) { "Sending command #{cmd}" }
-            while !@operator.send(cmd) do
-              sleep 1
-            end
-          }
-        }
-      end
+      %w( credit_left internet_left ).each { |cmd|
+        ddputs(3) { "Sending command #{cmd}" }
+        @operator.send(cmd)
+      }
       @operator
     end
 
     def self.operators
-      @@operators
+      @operators
+    end
+
+    class Stub
+      def self.inherited(other)
+        dputs(2) { "Inheriting operator #{other.inspect}" }
+        Operator.operators[other.to_s.sub(/.*::/, '')] = other
+        super(other)
+      end
+
+      def method_missing( name, *args )
+        raise NotSupported if Operator.methods_needed.index name
+        super( name, args )
+      end
     end
   end
 

@@ -3,14 +3,14 @@ require 'erb'
 
 module Network
   class SMScontrol
-    attr_accessor :modem, :state_now, :state_goal, :state_error, :state_traffic,
+    attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
                   :min_traffic
     extend HelperClasses::DPuts
 
     UNKNOWN = -1
 
-    def initialize( operator )
-      @state_now = MODEM_DISCONNECTED
+    def initialize(operator)
+      @state_now = Connection::DISCONNECTED
       @state_goal = UNKNOWN
       @send_status = false
       @state_error = 0
@@ -19,17 +19,15 @@ module Network
       @min_traffic = 100000
       @sms_injected = []
 
-      chose_operator( operator )
+      chose_operator(operator)
     end
 
     def chose_operator(name)
-      @modem = nil
-      @operator = Network::Operator::chose( name ) or return
-      @modem = @operator.modem
+      Connection.chose_operator( name )
     end
 
     def is_connected
-      @state_now == MODEM_CONNECTED
+      @state_now == Connection::CONNECTED
     end
 
     def state_to_s
@@ -56,14 +54,14 @@ module Network
           when /^connect/
             make_connection
           when /^disconnect/
-            @state_goal = MODEM_DISCONNECTED
+            @state_goal = Connection::DISCONNECTED
           when /^bash:/
             ret.push %x[ #{attr}]
           when /^ping/
             ret.push 'pong'
           when /^sms/
             number, text = attr.split(";", 2)
-            @modem.sms_send(number, text)
+            Connection.sms_send(number, text)
           when /^email/
             Kernel.const_defined? :SMSinfo and SMSinfo.send_email
             return false
@@ -73,59 +71,67 @@ module Network
     end
 
     def make_connection
-      @state_goal = MODEM_CONNECTED
+      @state_goal = Connection::CONNECTED
       @state_error = 0
     end
 
     def check_connection
-      return unless @modem
+      return unless Connection.available?
 
-      @state_traffic = @operator.internet_left( true )
+      @state_traffic = Operator.internet_left(true)
       if @state_traffic >= 0 and @state_goal == UNKNOWN
         @state_goal = @state_traffic > @min_traffic ?
-            MODEM_CONNECTED : MODEM_DISCONNECTED
+            Connection::CONNECTED : Connection::DISCONNECTED
       end
 
       old = @state_now
-      @state_now = @modem.connection_status
+      if @state_now == Connection::CONNECTED &&
+          @state_traffic <= @min_traffic
+        @state_goal = Connection::DISCONNECTED
+      end
+
+      @state_now = Connection.status
       if @state_goal != @state_now
-        if @state_now == MODEM_CONNECTION_ERROR
+        if @state_now == Connection::CONNECTION_ERROR
           @state_error += 1
-          @modem.connection_stop
+          Connection.stop
           sleep 2
           #if @state_error > 5
-          #  @state_goal = MODEM_DISCONNECTED
+          #  @state_goal = Connection::DISCONNECTED
           #end
         end
-        if @state_goal == MODEM_DISCONNECTED
-          @modem.connection_stop
-        elsif @state_goal == MODEM_CONNECTED
+        if @state_goal == Connection::DISCONNECTED
+          Connection.stop
+        elsif @state_goal == Connection::CONNECTED
           if @state_traffic < @min_traffic
-            @state_goal = MODEM_DISCONNECTED
+            @state_goal = Connection::DISCONNECTED
           else
-            @modem.connection_start
+            Connection.start
           end
         end
       else
         @state_error = 0
       end
       if old != @state_now
-        if @state_now == MODEM_CONNECTED
-          Network::connection_up
-        elsif old == MODEM_CONNECTED
-          Network::connection_down
+        begin
+          if @state_now == Connection::CONNECTED
+            Network::Actions.connection_up
+          elsif old == Connection::CONNECTED
+            Network::Actions.connection_down
+          end
+        rescue NotSupported => e
         end
       end
     end
 
     def check_sms
-      return unless @modem
+      return unless Connection.available?
       if @send_status
-        @modem.sms_send(@phone_main, interpret_commands('cmd:status').join('::'))
+        Connection.sms_send(@phone_main, interpret_commands('cmd:status').join('::'))
         @send_status = false
         SMSinfo.send_email
       end
-      sms = @modem.sms_list.concat(@sms_injected)
+      sms = Connection.sms_list.concat(@sms_injected)
       @sms_injected = []
       dputs(3) { "SMS are: #{sms.inspect}" }
       sms.each { |sms|
@@ -134,11 +140,11 @@ module Network
         if sms._Content =~ /^cmd:/i
           if (ret = interpret_commands(sms._Content))
             log_msg :SMS, "Sending to #{sms._Phone} - #{ret.inspect}"
-            @modem.sms_send(sms._Phone, ret.join('::'))
+            Connection.sms_send(sms._Phone, ret.join('::'))
           end
         else
-          @state_traffic = @operator.internet_left( true )
-          case @operator.name
+          @state_traffic = Operator.internet_left(true)
+          case Operator.name
             when :Airtel
               case sms._Content
                 when /votre.*solde/i
@@ -147,21 +153,19 @@ module Network
                   @send_status = true
               end
             when :Tigo
-              log_msg :SMS, "Got message from Tigo: #{sms.inspect}"
-
               case sms._Content
                 when /200.*cfa/i
-                  @state_goal = MODEM_DISCONNECTED
+                  @state_goal = Connection::DISCONNECTED
                   log_msg :SMS, 'Getting internet-credit'
-                  @modem.sms_send(100, 'internet')
+                  Connection.sms_send(100, 'internet')
                 when /350.*cfa/i
-                  @state_goal = MODEM_DISCONNECTED
+                  @state_goal = Connection::DISCONNECTED
                   log_msg :SMS, 'Getting internet-credit'
-                  @modem.sms_send(200, 'internet')
+                  Connection.sms_send(200, 'internet')
                 when /850.*cfa/i
-                  @state_goal = MODEM_DISCONNECTED
+                  @state_goal = Connection::DISCONNECTED
                   log_msg :SMS, 'Getting internet-credit'
-                  @modem.sms_send(1111, 'internet')
+                  Connection.sms_send(1111, 'internet')
                 when /souscription reussie/i
                   make_connection
                   log_msg :SMS, 'Making connection'
@@ -169,7 +173,7 @@ module Network
               end
           end
         end
-        @modem.sms_delete(sms._Index)
+        Connection.sms_delete(sms._Index)
       }
     end
   end
