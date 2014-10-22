@@ -14,8 +14,7 @@ module Network
     @operator = nil
 
     @methods_needed = [
-        :sms_list, :sms_send, :sms_delete,
-        :internet_left, :internet_add,
+        :internet_left, :internet_add, :internet_cost,
         :credit_left, :credit_add, :credit_send
     ]
 
@@ -24,16 +23,10 @@ module Network
       @operator ? @operator.send( name, args) : raise NoOperator
     end
 
-    def self.list
-      @@operators
-    end
-
-    def self.chose(op)
-      @modem = Network::Modem.present? or raise 'NoModemPresent'
-
-      dputs(3) { "network-operators: #{@@operators.inspect}" }
-      raise 'OperatorNotFound' unless @@operators.has_key? op.to_s
-      @operator = @@operators[op.to_s].instance
+    def chose(op)
+      dputs(3) { "network-operators: #{@operators.inspect}" }
+      raise 'OperatorNotFound' unless @operators.has_key? op.to_s
+      @operator = @operators[op.to_s].instance
       @operator.modem = @modem
       %w( credit_left internet_left ).each { |cmd|
         ddputs(3) { "Sending command #{cmd}" }
@@ -42,8 +35,12 @@ module Network
       @operator
     end
 
-    def self.operators
+    def operators
       @operators
+    end
+
+    def name
+      @operator and @operator.class.name.sub(/.*::/,'')
     end
 
     class Stub

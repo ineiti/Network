@@ -1,9 +1,6 @@
 module Network
-  module Operators
-    class TigoOther < Network::Operator
-
-    end
-    class Tigo < Network::Operator
+  module Operator
+    class Tigo < Stub
       attr_accessor :modem
 
       @@credit=[
@@ -45,7 +42,7 @@ module Network
       def internet_left(force = false)
         @last_traffic ||= Time.now - 60
         if Time.now - @last_traffic > 60 &&
-            (force || @modem.connection_status == MODEM_CONNECTED)
+            (force || @modem.connection_status == Connection::CONNECTED)
           ussd_send('*128#')
           @last_traffic = Time.now
         end

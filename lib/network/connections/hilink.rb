@@ -2,54 +2,42 @@ require 'hilinkmodem'
 require 'helperclasses'
 
 module Network
-  module Modems
-    class Hilink < Modem
+  module Connection
+    class Hilink < Stub
       include HelperClasses::DPuts
 
-      def credit_left
-      end
-
-      def credit_add
-      end
-
-      def credit_mn
-      end
-
-      def credit_mb
-      end
-
-      def connection_start
+      def start
         dputs(3) { 'Starting connection' }
         HilinkModem::Dialup.connect
       end
 
-      def connection_stop
+      def stop
         dputs(3) { 'Stopping connection' }
         HilinkModem::Dialup.disconnect
       end
 
-      def connection_status
+      def status
         if status = HilinkModem::Monitoring.status
           dputs(3) { "#{status.inspect}" }
           case HilinkModem::Monitoring.status._ConnectionStatus.to_i
             when 20, 112..115
-              MODEM_DISCONNECTED
+              DISCONNECTED
             when 900
-              MODEM_CONNECTING
+              CONNECTING
             when 901
-              MODEM_CONNECTED
+              CONNECTED
             when 902
-              MODEM_DISCONNECTED
+              DISCONNECTED
             when 903
-              MODEM_DISCONNECTING
+              DISCONNECTING
             when 26, 32
-              MODEM_CONNECTION_ERROR
+              ERROR_CONNECTION
             else
-              MODEM_CONNECTION_ERROR
+              ERROR_CONNECTION
           end
         else
           dputs(1) { "No status received" }
-          MODEM_ERROR
+          ERROR
         end
       end
 
@@ -81,16 +69,28 @@ module Network
         end
       end
 
-      def set_2g
-        HilinkModem::Network.set_connection_type("2g")
-      end
-
       def traffic_reset
         HilinkModem::Monitoring.traffic_reset
       end
 
-      def self.modem_present?
+      def set_2g
+        HilinkModem::Network.set_connection_type('2g')
+      end
+
+      def self.present?
         Kernel.system('lsusb -d 12d1:14db > /dev/null')
+      end
+
+      def present?
+        self.present?
+      end
+
+      def reset
+        System.run_bool('netctl eth2 restart')
+      end
+
+      def down
+        System.run_bool('netctl eth2 down')
       end
     end
   end

@@ -1,6 +1,6 @@
 module Network
-  module Operators
-    class Tawali < Network::Operator
+  module Operator
+    class Tawali < Stub
       def credit_left
 
       end

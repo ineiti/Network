@@ -3,43 +3,43 @@ require 'helperclasses'
 require 'serialmodem'
 
 module Network
-  module Modems
-    class Serial < Modem
+  module Connection
+    class Serial < Stub
       include HelperClasses::DPuts
       include SerialModem
 
-      def setup
-        @connection = MODEM_ERROR
+      def initialize
+        @connection = ERROR
         setup_modem
-        connection_status
+        status
       end
 
-      def connection_start
+      def start
         ddputs(3) { 'Starting connection' }
-        @connection = MODEM_CONNECTING
+        @connection = CONNECTING
         Kernel.system('netctl restart ppp0')
       end
 
-      def connection_stop
+      def stop
         ddputs(3) { 'Stopping connection' }
-        @connection = MODEM_DISCONNECTING
+        @connection = DISCONNECTING
         Kernel.system('netctl stop ppp0')
       end
 
-      def connection_status
+      def status
         @connection =
             if %x[ netctl status ppp0 | grep Active ] =~ /: active/
               if Kernel.system('grep -q ppp0 /proc/net/dev')
                 if %x[ ifconfig ppp0 ]
-                  MODEM_CONNECTED
+                  CONNECTED
                 else
-                  MODEM_CONNECTING
+                  CONNECTING
                 end
               else
-                MODEM_CONNECTION_ERROR
+                ERROR_CONNECTION
               end
             else
-              MODEM_DISCONNECTED
+              DISCONNECTED
             end
       end
 
@@ -55,14 +55,6 @@ module Network
         @serial_ussd_results
       end
 
-      def traffic_stats
-        {rx: -1, tx: -1}
-      end
-
-      def traffic_reset
-
-      end
-
       def set_2g
         set_connection_type('2g')
       end
@@ -71,7 +63,7 @@ module Network
         set_connection_type('3g')
       end
 
-      def self.modem_present?
+      def self.present?
         case System.run_str('lsusb')
           when /12d1:1506/, /12d1:14ac/, /12d1:1c05/
             true
@@ -80,6 +72,10 @@ module Network
           else
             false
         end
+      end
+
+      def present?
+        self.present?
       end
     end
   end

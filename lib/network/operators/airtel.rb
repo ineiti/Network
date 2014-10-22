@@ -1,6 +1,6 @@
 module Network
-  module Operators
-    class Airtel < Network::Operator
+  module Operator
+    class Airtel < Stub
       attr_accessor :modem
 
       @@credit=[
@@ -24,7 +24,7 @@ module Network
         dp 'cl'
         @last_credit ||= Time.now - 60
         if Time.now - @last_credit > 60 &&
-            (force || @modem.connection_status == MODEM_CONNECTED)
+            (force || @modem.connection_status == Connection::CONNECTED)
           ussd_send('*342#')
           ussd_send('4')
           @last_credit = Time.now
@@ -48,7 +48,7 @@ module Network
         dp 'il'
         @last_traffic ||= Time.now - 60
         if Time.now - @last_traffic > 60 &&
-            (force || @modem.connection_status == MODEM_CONNECTED)
+            (force || @modem.connection_status == Connection::CONNECTED)
           ussd_send('*137#') or return nil
           @last_traffic = Time.now
         end

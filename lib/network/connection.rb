@@ -41,12 +41,16 @@ module Network
     @methods_needed = [
         :start, :stop, :status,
         :present?, :reset, :down,
-        :sms_list, :sms_send, :sms_delete
+        :sms_list, :sms_send, :sms_delete,
+        :ussd_send, :ussd_fetch
     ]
 
     def method_missing(name, *args)
-      super(name, args) unless @methods_needed.index(name)
-      @connection ? @connection.send(name, args) : raise NoConnection
+      if @methods_needed.index(name)
+        @connection ? @connection.send(name, args) : raise NoConnection
+      else
+        super(name, args)
+      end
     end
 
     def available?

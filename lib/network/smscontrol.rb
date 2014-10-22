@@ -144,7 +144,7 @@ module Network
           end
         else
           @state_traffic = Operator.internet_left(true)
-          case Operator.name
+          case Operator.name.to_sym
             when :Airtel
               case sms._Content
                 when /votre.*solde/i
