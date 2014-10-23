@@ -1,32 +1,44 @@
 module Network
-
   module Operator
-    attr_accessor :operators, :methods_needed
+    attr_accessor :operators, :methods_needed, :connection_type,
+                  :cost_base, :cost_shared
+    extend self
 
-    include HelperClasses::DPuts
+    extend HelperClasses::DPuts
 
     MISSING = -1
     CONNECTED = 1
     DISCONNECTED = 2
     ERROR = 3
 
+    CONNECTION_ALWAYS = 1
+    CONNECTION_ONDEMAND = 2
+
     @operators = {}
     @operator = nil
+    @modem = nil
+    @connection_type = CONNECTION_ALWAYS
+    @cost_base = 10
+    @cost_shared = 10
+
 
     @methods_needed = [
         :internet_left, :internet_add, :internet_cost,
-        :credit_left, :credit_add, :credit_send
+        :credit_left, :credit_add, :credit_send,
+        :has_promo, :user_cost_max
     ]
 
     def method_missing( name, *args )
       super( name, args ) unless @methods_needed.index( name )
-      @operator ? @operator.send( name, args) : raise NoOperator
+      raise NoOperator unless @operator
+      @operator.send( name, args)
     end
 
     def chose(op)
       dputs(3) { "network-operators: #{@operators.inspect}" }
       raise 'OperatorNotFound' unless @operators.has_key? op.to_s
-      @operator = @operators[op.to_s].instance
+      raise 'ConnectionNotFound' unless @modem
+      @operator = @operators[op.to_s].new
       @operator.modem = @modem
       %w( credit_left internet_left ).each { |cmd|
         ddputs(3) { "Sending command #{cmd}" }
@@ -35,15 +47,20 @@ module Network
       @operator
     end
 
-    def operators
-      @operators
-    end
-
     def name
       @operator and @operator.class.name.sub(/.*::/,'')
     end
 
+    def load
+      Dir[File.dirname(__FILE__) + '/operators/*.rb'].each { |f|
+        dputs(3) { "Adding operator-file #{f}" }
+        require(f)
+      }
+    end
+
     class Stub
+      extend HelperClasses::DPuts
+
       def self.inherited(other)
         dputs(2) { "Inheriting operator #{other.inspect}" }
         Operator.operators[other.to_s.sub(/.*::/, '')] = other
@@ -56,10 +73,6 @@ module Network
       end
     end
   end
-
-  Dir[File.dirname(__FILE__) + '/operators/*.rb'].each { |f|
-    dputs(3) { "Adding operator-file #{f}" }
-    require(f)
-  }
-
 end
+
+Network::Operator.load

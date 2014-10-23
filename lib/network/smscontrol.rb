@@ -19,11 +19,11 @@ module Network
       @min_traffic = 100000
       @sms_injected = []
 
-      chose_operator(operator)
+      Connection.available? and chose_operator(operator)
     end
 
     def chose_operator(name)
-      Connection.chose_operator( name )
+      Operator.chose( name )
     end
 
     def is_connected

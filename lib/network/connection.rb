@@ -1,5 +1,6 @@
 require 'singleton'
 require 'helperclasses'
+require 'thread'
 
 module Network
   extend HelperClasses::DPuts
@@ -7,7 +8,7 @@ module Network
   module Connection
     attr_accessor :connections, :operator, :methods_needed
     extend HelperClasses::DPuts
-    include HelperClasses::DPuts
+    extend self
 
     ERROR=-1
     CONNECTED=1
@@ -16,13 +17,10 @@ module Network
     DISCONNECTED=4
     ERROR_CONNECTION=5
 
-    CONNECTION_ALWAYS = 1
-    CONNECTION_ONDEMAND = 2
-
     @connections = {}
     @connection = nil
     @operator = nil
-    @search_connections = new Thread {
+    @search_connections = Thread.new {
       if @connection && !@connection.present?
         available = @connections.select { |n, c| c.present? }
         if !available.key(@connection.class)
@@ -47,7 +45,8 @@ module Network
 
     def method_missing(name, *args)
       if @methods_needed.index(name)
-        @connection ? @connection.send(name, args) : raise NoConnection
+        raise NoConnection unless @connection
+        @connection.send(name, args)
       else
         super(name, args)
       end
