@@ -2,10 +2,11 @@
 # Replacement for LibNet
 
 require 'drb'
+require 'network/captive'
 require 'network/connection'
+require 'network/mail'
 require 'network/operator'
 require 'network/smscontrol'
-require 'network/captive'
 require 'helperclasses'
 
 module Network

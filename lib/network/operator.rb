@@ -1,7 +1,7 @@
 module Network
   module Operator
     attr_accessor :operators, :methods_needed, :connection_type,
-                  :cost_base, :cost_shared
+                  :cost_base, :cost_shared, :allow_free
     extend self
 
     extend HelperClasses::DPuts
@@ -20,6 +20,7 @@ module Network
     @connection_type = CONNECTION_ALWAYS
     @cost_base = 10
     @cost_shared = 10
+    @allow_free = false
 
 
     @methods_needed = [
@@ -56,6 +57,10 @@ module Network
         dputs(3) { "Adding operator-file #{f}" }
         require(f)
       }
+    end
+
+    def present?
+      @operator
     end
 
     class Stub

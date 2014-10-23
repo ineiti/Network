@@ -318,6 +318,10 @@ module Network
       @users_connected.collect { |u, ip| u }
     end
 
+    def user_connected(name)
+      @users_connected.has_key? name
+    end
+
     def ips_connected
       @users.connected.collect { |u, ip| ip }
     end
@@ -325,7 +329,7 @@ module Network
     def user_connect(ip, name, free = false)
       Connection.start
 
-      if @users_connected.has_key? name
+      if user_connected name
         log "User #{name} already connected"
         return unless @allow_double
       end
