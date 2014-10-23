@@ -1,8 +1,8 @@
 require 'helperclasses'
 
 module Network
-  module Modems
-    class Simulation < Modem
+  module Connection
+    class Simulation < Stub
       include HelperClasses::DPuts
       @@present = false
       @@credit = 100
@@ -69,8 +69,12 @@ module Network
                    :Content => content, :Date => date})
       end
 
-      def self.modem_present?
+      def self.present?
         @@present
+      end
+
+      def present?
+        self.present?
       end
     end
   end

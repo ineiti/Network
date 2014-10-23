@@ -1,6 +1,9 @@
+require 'helperclasses'
+
 module Network
   module Captive
     extend self
+    extend HelperClasses::DPuts
     attr_accessor :usage_daily, :ips_idle, :mac_list, :ip_list, :restricted,
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
@@ -14,33 +17,36 @@ module Network
 # nat:INTERNET - redirects to the proxy or direct
 #   internet-access
 
+    @prerouting = nil
+    @http_proxy = nil
+    @allow_dst = []
+    @internal_ips = []
+    @captive_dnat = '192.168.10.1'
+    @openvpn_allow_double = false
+    @allow_src_direct = []
+    @allow_src_proxy = []
+
+    @allow_dhcp = %w( 255.255.255.255 )
+    @restricted = nil
+
     @ips_idle = []
     @mac_list = []
     @ip_list = []
-    @restricted = []
-    @allow_dhcp = %w( 255.255.255.255 )
-    @internal_ips = []
-    @allow_dst = []
-    @allow_src_direct = []
-    @allow_src_proxy = []
-    @captive_dnat = nil
-    @prerouting = nil
-    @http_proxy = nil
-    @openvpn_allow_double = nil
 
     @users = []
-    @users_connected = {}
+    @users_conn = {}
     @disconnect_list = []
     @allow_double = true
 
     @usage_daily = 0
 
-    def log( msg )
+    def log(msg)
       log_msg :Captive, msg
     end
 
     def iptables(*cmds)
-      System.run_str "iptables #{ cmds.join(' ') }"
+      dputs(3) { cmds.join(' ') }
+      System.run_str "iptables -w #{ cmds.join(' ') }"
     end
 
     def ipnat(*cmds)
@@ -119,8 +125,43 @@ module Network
       end
     end
 
-    def clear()
-      loga 'Clearing IPs and refreshing MACs'
+    def var_array(name, splitchar = ',')
+      val = self.send("#{name}")
+      self.send("#{name}=", val.split(splitchar))
+      ddputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+    end
+
+    def var_string_nil(name)
+      val = self.send("#{name}")
+      self.send("#{name}=", val.length > 0 ? val : nil)
+      ddputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+    end
+
+    def var_bool(name)
+      val = self.send("#{name}")
+      bool = if val.length > 0 then
+               val.to_s == 'true' ? true : false
+             else
+               false
+             end
+      self.send("#{name}=", bool)
+      ddputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+    end
+
+    def clean_config
+      %w( prerouting http_proxy captive_dnat restricted ).each { |var|
+        var_string_nil(var)
+      }
+      %w( allow_dst internal_ips allow_src_direct allow_src_proxy ).each { |var|
+        var_array(var)
+      }
+      %w( openvpn_allow_double ).each { |var|
+        var_bool(var)
+      }
+    end
+
+    def clear
+      log 'Clearing IPs and refreshing MACs'
       ipnat '-F CAPTIVE'
       iptables '-F FCAPTIVE'
 
@@ -143,15 +184,17 @@ module Network
         iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
       }
 
-      if @dnat
-        ipnat "-I CAPTIVE -j DNAT --to-dest #{@dnat}"
+      if @captive_dnat
+        log "Captive dnatting #{@captive_dnat}"
+        ipnat "-I CAPTIVE -j DNAT --to-dest #{@captive_dnat}"
       end
 
       @ip_list.each { |ip|
+        log "Accepting IP #{ip}"
         ip_accept ip
       }
-      local mac
       @mac_list.each { |mac|
+        log "Accepting mac #{mac}"
         mac_accept mac
       }
 
@@ -164,6 +207,7 @@ module Network
       }
 
       iptables '-A FCAPTIVE -j RETURN'
+      log 'Finished clean up'
     end
 
     def accept_all
@@ -191,49 +235,48 @@ module Network
       end
 
       if ips_connected.length == 0
-        if Connection.type == Connection::CONNECTION_ONDEMAND
-          Connection.stop
-        else
-          ips_connected.each { |ip|
-            packets = packets_count ip
-            log "Checking ip #{ip} - has #{packets} packets"
-            if packets == 0
-              if @ips_idle.index ip
-                loga "No packets, kicking #{ip}"
-                user_disconnect_ip ip
-                @ips_idle.delete ip
-                loga "ips_idle is now #{@ips_idle}"
-              else
-                loga "#{ip} is idle, adding to list"
-                @ips_idle.push ip
-              end
-            else
+        Connection.stop if Operator.connection_type == Operator::CONNECTION_ONDEMAND
+      else
+        ips_connected.each { |ip|
+          packets = packets_count ip
+          log "Checking ip #{ip} - has #{packets} packets"
+          if packets == 0
+            if @ips_idle.index ip
+              log "No packets, kicking #{ip}"
+              user_disconnect_ip ip
               @ips_idle.delete ip
+              log "ips_idle is now #{@ips_idle}"
+            else
+              log "#{ip} is idle, adding to list"
+              @ips_idle.push ip
             end
-          }
-        end
+          else
+            @ips_idle.delete ip
+          end
+        }
       end
 
-      #  log Clearing counters
+      log 'Clearing counters'
       iptables '-Z FCAPTIVE'
     end
 
-    def delete_chain(parent, chain, table = nil)
+    def delete_chain(par, ch, table = nil)
+      chain = ch.to_s
       ipt = table ? "-t #{table}" : ''
-      if iptables(ipt, '-L', parent).index(chain)
-        if parent
-          iptables ipt, "-D #{parent} -j #{chain}"
+      if iptables(ipt, '-L', par).index(chain)
+        if par
+          iptables ipt, "-D #{par.to_s} -j #{chain}"
         end
         iptables ipt, "-F #{chain}"
         iptables ipt, "-X #{chain}"
       end
       iptables ipt, "-N #{chain}"
-      if parent
-        iptables ipt, "-I #{parent} -j #{chain}"
+      if par
+        iptables ipt, "-I #{par.to_s} -j #{chain}"
       end
     end
 
-    def setup()
+    def setup
       log 'Setting up'
 
       delete_chain :PREROUTING, :CAPTIVE, :nat
@@ -253,10 +296,12 @@ module Network
       clear
 
       ips_connected.each { |ip|
+        log "Re-connecting #{ip}"
         ip_accept ip
       }
 
       if @restricted
+        log "Setting restrictions of #{@restricted.inspect}"
         restriction_set @restricted
       end
     end
@@ -315,45 +360,46 @@ module Network
     end
 
     def users_connected
-      @users_connected.collect { |u, ip| u }
+      @users_conn.collect { |u, ip| u }
     end
 
     def user_connected(name)
-      @users_connected.has_key? name
+      @users_conn.has_key? name
     end
 
     def ips_connected
-      @users.connected.collect { |u, ip| ip }
+      @users_conn.collect { |u, ip| ip }
     end
 
-    def user_connect(ip, name, free = false)
+    def user_connect(ip, n, free = false)
       Connection.start
+      name = n.to_s
 
       if user_connected name
         log "User #{name} already connected"
         return unless @allow_double
       end
 
-      same_ip = @users_connected.key ip
+      same_ip = @users_conn.key ip
       log "Connecting user #{name} - #{ip}"
-      @users_connected[name] = ip
+      @users_conn[name] = ip
       ip_accept ip
 
       same_ip and user_disconnect(same_ip, ip)
     end
 
     def user_disconnect_name(name)
-      return unless ip = @users_connected[name]
-      user_disconnect(name, ip)
+      return unless ip = @users_conn[name.to_s]
+      user_disconnect(name.to_s, ip)
     end
 
     def user_disconnect_ip(ip)
-      return unless name = @users_connected.key(ip)
+      return unless name = @users_conn.key(ip)
       user_disconnect(name, ip)
     end
 
     def users_disconnect_all
-      @users_connected.dup.each { |name, ip|
+      @users_conn.dup.each { |name, ip|
         user_disconnect name, ip
       }
     end
@@ -361,15 +407,15 @@ module Network
     def user_disconnect(name, ip)
       log "user_disconnect #{name}:#{ip}"
 
-      return unless ip = @users_connected.has_key?(name)
-      @users_disconnect.delete name
+      return unless ip = @users_conn[name]
+      @users_conn.delete name
       ip_deny ip
 
-      @users_connected.length == 0 and isp_may_disconnect
+      @users_conn.length == 0 and Connection.may_stop
     end
 
     def user_cost_now
-      10
+      17
     end
   end
 end

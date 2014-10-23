@@ -20,24 +20,10 @@ module Network
     @connections = {}
     @connection = nil
     @operator = nil
-    @search_connections = Thread.new {
-      if @connection && !@connection.present?
-        available = @connections.select { |n, c| c.present? }
-        if !available.key(@connection.class)
-          log_msg :Connection, "Lost connection #{@connection}"
-          @connection.down
-          @connection = nil
-        end
-      end
-      if !@connection && available.length > 0
-        @connection = available.first[1].new
-        log_msg :Connection, "Instantiating new connection: #{@connection}"
-      end
-      sleep 10
-    }
+    @search_connections = nil
 
     @methods_needed = [
-        :start, :stop, :status,
+        :start, :stop, :status, :may_stop, :status_old,
         :present?, :reset, :down,
         :sms_list, :sms_send, :sms_delete,
         :ussd_send, :ussd_fetch
@@ -46,7 +32,7 @@ module Network
     def method_missing(name, *args)
       if @methods_needed.index(name)
         raise NoConnection unless @connection
-        @connection.send(name, args)
+        @connection.send(name, *args)
       else
         super(name, args)
       end
@@ -60,9 +46,45 @@ module Network
       Time.strptime(sms._Date, '%Y-%m-%d %H:%M:%S')
     end
 
+    def start_search
+      return if @search_connections
+      @search_connections = Thread.new {
+        begin
+          dputs(4) { "Start search with connections #{@connections}" }
+          if @connections.length > 0
+            dputs(4) { 'hi' }
+            available = @connections.select { |n, c|
+              dputs(3){"Testing #{n}"}
+              c.present?
+            }
+            dputs(2) { "Available connections #{available}" }
+            if @connection
+              if !available.key(@connection.class)
+                log_msg :Connection, "Lost connection #{@connection}"
+                @connection.down
+                @connection = nil
+              end
+            else
+              if available.length > 0
+                @connection = available.first[1].new
+                log_msg :Connection, "Instantiating new connection: #{@connection}"
+              end
+            end
+          end
+        rescue Exception => e
+          dputs(0) { "#{e.inspect}" }
+          dputs(0) { "#{e.to_s}" }
+          puts e.backtrace
+        end
+        sleep 10
+      }
+    end
+
     class Stub
+      extend HelperClasses::DPuts
+
       def self.inherited(other)
-        dputs(2) { "Inheriting modem #{other.inspect}" }
+        dputs(2) { "Inheriting connection #{other.inspect}" }
         Connection.connections[other.to_s.sub(/.*::/, '')] = other
         super(other)
       end
@@ -79,8 +101,9 @@ module Network
     end
   end
 
-  Dir[File.dirname(__FILE__) + '/modems/*.rb'].each { |f|
-    dputs(3) { "Adding modem-file #{f}" }
+  Dir[File.dirname(__FILE__) + '/connections/*.rb'].each { |f|
+    dputs(3) { "Adding connection-file #{f}" }
     require(f)
   }
+  Connection.start_search
 end

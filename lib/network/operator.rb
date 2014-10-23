@@ -16,7 +16,6 @@ module Network
 
     @operators = {}
     @operator = nil
-    @modem = nil
     @connection_type = CONNECTION_ALWAYS
     @cost_base = 10
     @cost_shared = 10
@@ -29,18 +28,19 @@ module Network
         :has_promo, :user_cost_max
     ]
 
-    def method_missing( name, *args )
-      super( name, args ) unless @methods_needed.index( name )
+    def method_missing(name, *args)
+      super(name, args) unless @methods_needed.index(name)
       raise NoOperator unless @operator
-      @operator.send( name, args)
+      @operator.send(name, *args)
     end
 
     def chose(op)
+      dputs_func
       dputs(3) { "network-operators: #{@operators.inspect}" }
       raise 'OperatorNotFound' unless @operators.has_key? op.to_s
-      raise 'ConnectionNotFound' unless @modem
+      raise 'ConnectionNotFound' unless Connection.available?
       @operator = @operators[op.to_s].new
-      @operator.modem = @modem
+      @operator.modem = Connection.available?
       %w( credit_left internet_left ).each { |cmd|
         ddputs(3) { "Sending command #{cmd}" }
         @operator.send(cmd)
@@ -49,7 +49,7 @@ module Network
     end
 
     def name
-      @operator and @operator.class.name.sub(/.*::/,'')
+      @operator and @operator.class.name.sub(/.*::/, '')
     end
 
     def load
@@ -66,15 +66,17 @@ module Network
     class Stub
       extend HelperClasses::DPuts
 
+      attr_accessor :modem
+
       def self.inherited(other)
-        dputs(2) { "Inheriting operator #{other.inspect}" }
+        ddputs(2) { "Inheriting operator #{other.inspect}" }
         Operator.operators[other.to_s.sub(/.*::/, '')] = other
         super(other)
       end
 
-      def method_missing( name, *args )
+      def method_missing(name, *args)
         raise NotSupported if Operator.methods_needed.index name
-        super( name, args )
+        super(name, *args)
       end
     end
   end
