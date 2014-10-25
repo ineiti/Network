@@ -39,8 +39,7 @@ module Network
       dputs(3) { "network-operators: #{@operators.inspect}" }
       raise 'OperatorNotFound' unless @operators.has_key? op.to_s
       raise 'ConnectionNotFound' unless Connection.available?
-      @operator = @operators[op.to_s].new
-      @operator.modem = Connection.available?
+      @operator = @operators[op.to_s].new( Connection.available? )
       %w( credit_left internet_left ).each { |cmd|
         ddputs(3) { "Sending command #{cmd}" }
         @operator.send(cmd)
@@ -67,6 +66,10 @@ module Network
       extend HelperClasses::DPuts
 
       attr_accessor :modem
+
+      def initialize( modem )
+        @modem = modem
+      end
 
       def self.inherited(other)
         ddputs(2) { "Inheriting operator #{other.inspect}" }

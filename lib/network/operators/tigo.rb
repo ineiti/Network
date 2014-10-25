@@ -14,6 +14,10 @@ module Network
           {cost: 50_000, volume: 4_000_000_000, code: 2030}
       ]
 
+      def initialize
+
+      end
+
       def ussd_send(str)
         begin
           @modem.ussd_send(str)
@@ -40,9 +44,9 @@ module Network
       end
 
       def internet_left(force = false)
-        @last_traffic ||= Time.now - 60
-        if Time.now - @last_traffic > 60 &&
-            (force || @modem.connection_status == Connection::CONNECTED)
+        if (force || !@last_traffic) ||
+            (Time.now - @last_traffic > 60 &&
+            @modem.status == Connection::CONNECTED)
           ussd_send('*128#')
           @last_traffic = Time.now
         end

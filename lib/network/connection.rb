@@ -46,23 +46,40 @@ module Network
       Time.strptime(sms._Date, '%Y-%m-%d %H:%M:%S')
     end
 
+    def available
+      @connections.select { |n, c|
+        dputs(3){"Testing #{n}"}
+        c.present?
+      }
+    end
+
+    def remove
+      return unless @connection
+      @connection.down
+      @connection = nil
+    end
+
+    def chose( name )
+      return unless available.has_key? name.to_s
+      if @connection
+        remove
+      end
+      @connection = @connections[name.to_s].new
+      log_msg :Connection, "Chosing new connection: #{@connection}"
+      @connection
+    end
+
     def start_search
       return if @search_connections
       @search_connections = Thread.new {
         begin
           dputs(4) { "Start search with connections #{@connections}" }
           if @connections.length > 0
-            dputs(4) { 'hi' }
-            available = @connections.select { |n, c|
-              dputs(3){"Testing #{n}"}
-              c.present?
-            }
             dputs(2) { "Available connections #{available}" }
             if @connection
               if !available.key(@connection.class)
                 log_msg :Connection, "Lost connection #{@connection}"
-                @connection.down
-                @connection = nil
+                remove
               end
             else
               if available.length > 0

@@ -12,6 +12,28 @@ module Network
           {cost: 50_000, volume: 5_000_000_000, code: 5}
       ]
 
+      def initialize(modem)
+        super( modem )
+        dp 'Setting up sms_new'
+        @modem.serial_sms_new.push( Proc.new {|list, id| new_sms(list, id)})
+        @internet_left = -1
+      end
+
+      def new_sms( list, id )
+        if list[id][1] == '"CPTInternet"'
+          if str = list[id][4]
+            if left = str.match(/([0-9\.]+\s*.[oObB])/)
+              bytes, mult = left[1].split
+              (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
+                  bytes = (bytes.to_f * 10 ** exp).to_i
+              ddputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
+              @internet_left = bytes.to_i
+            end
+          end
+          @modem.serial_sms_to_delete.push id
+        end
+      end
+
       def ussd_send(str)
         begin
           @modem.ussd_send(str)
@@ -22,11 +44,10 @@ module Network
 
       def credit_left(force = false)
         dp 'cl'
-        @last_credit ||= Time.now - 60
-        if Time.now - @last_credit > 60 &&
-            (force || @modem.connection_status == Connection::CONNECTED)
-          ussd_send('*342#')
-          ussd_send('4')
+        if (force || !@last_credit ) ||
+            (Time.now - @last_credit >= 60 &&
+            @modem.status == Connection::CONNECTED)
+          ussd_send('*137#')
           @last_credit = Time.now
         end
         if str = @modem.ussd_fetch('*137#')
@@ -46,23 +67,14 @@ module Network
 
       def internet_left(force = false)
         dp 'il'
-        @last_traffic ||= Time.now - 60
-        if Time.now - @last_traffic > 60 &&
-            (force || @modem.connection_status == Connection::CONNECTED)
-          ussd_send('*137#') or return nil
+        if ( force || !@last_traffic ) ||
+            (Time.now - @last_traffic >= 60 &&
+            @modem.status == Connection::CONNECTED)
+          ussd_send('*342#')
+          ussd_send('4')
           @last_traffic = Time.now
         end
-        if str = @modem.ussd_fetch('*137#')
-          if left = str.match(/([0-9\.]+\s*.[oObB])/)
-            bytes, mult = left[1].split
-            (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-                bytes = (bytes.to_f * 10 ** exp).to_i
-            ddputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
-            return bytes.to_i
-          end
-          return 0
-        end
-        return -1
+        @internet_left
       end
 
       def internet_add(volume)
