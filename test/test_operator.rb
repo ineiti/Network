@@ -20,20 +20,22 @@ def ussd_send(str)
   sleep 2
 end
 
+$op.modem.sms_send('62154352', 'test1')
+
 if true
   #$op.internet_add( 10_000_000 )
   #sleep 20
-  sleep 10
-  dp $op.credit_left
-  sleep 300
-  dp $op.internet_left
+  #sleep 10
+  #dp $op.credit_left
+  #sleep 300
+  #dp $op.internet_left
 
-  exit
 
   dp $op.modem.sms_scan
+  sleep 10
+  dp $op.modem.serial_sms.inspect
   sleep 1
-  dp $op.modem.sms_list.inspect
-  sleep 1
+  exit
 #ussd_send '*242*10#'
   ussd_send '*342#'
   ussd_send '4'

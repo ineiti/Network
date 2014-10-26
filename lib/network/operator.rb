@@ -40,10 +40,10 @@ module Network
       raise 'OperatorNotFound' unless @operators.has_key? op.to_s
       raise 'ConnectionNotFound' unless Connection.available?
       @operator = @operators[op.to_s].new( Connection.available? )
-      %w( credit_left internet_left ).each { |cmd|
-        ddputs(3) { "Sending command #{cmd}" }
-        @operator.send(cmd)
-      }
+      #%w( credit_left internet_left ).each { |cmd|
+      #  ddputs(3) { "Sending command #{cmd}" }
+      #  @operator.send(cmd)
+      #}
       @operator
     end
 
