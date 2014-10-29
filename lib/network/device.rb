@@ -18,7 +18,7 @@ module Network
 
     def add( dev )
       @devices.each { |name,d|
-        ddputs(4){"Checking #{dev} for #{name}-#{d}-#{d.ids}"}
+        dputs(4){"Checking #{dev} for #{name}-#{d}-#{d.ids}"}
         if d.check_new(dev)
           log :Listener, "Adding device #{name} - #{dev.inspect}"
           @present.push d.new(dev)
@@ -70,7 +70,7 @@ module Network
       def self.check_same( dev, attributes, dev_self)
         attributes.each { |a|
           att = a.to_sym
-          return false if dev_self[att] != dev[att]
+          return false unless dev_self[att] =~ /#{dev[att]}/
         }
         return true
       end
