@@ -1,6 +1,8 @@
 module Network
-  module Connection
-    class Static < Stub
+  module Device
+    class Ethernet < Stub
+      @ids = [{class: 'net', name: 'eth.*'}]
+
       def start
 
       end
@@ -19,14 +21,6 @@ module Network
 
       def status_old
         4
-      end
-
-      def self.present?
-        true
-      end
-
-      def present?
-        self.present?
       end
 
       def reset

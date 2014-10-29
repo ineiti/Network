@@ -1,17 +1,17 @@
 require 'helperclasses'
 
 module Network
-  module Connection
+  module Device
     class Simulation < Stub
       include HelperClasses::DPuts
-      @@present = false
-      @@credit = 100
-      @@connection = false
-      @@sms = []
-      @@sms_index = 0
+      @ids = []
+      @credit = 100
+      @connection = false
+      @sms = []
+      @sms_index = 0
 
       def credit_left
-        @@credit
+        @credit
       end
 
       def credit_add
@@ -25,20 +25,20 @@ module Network
 
       def connection_start
         dputs(3) { 'Starting connection' }
-        @@connection = MODEM_CONNECTED
+        @connection = MODEM_CONNECTED
       end
 
       def connection_stop
         dputs(3) { 'Stopping connection' }
-        @@connection = MODEM_DISCONNECTED
+        @connection = MODEM_DISCONNECTED
       end
 
       def connection_status
-        @@connection
+        @connection
       end
 
       def sms_list
-        if @@sms.length == 0
+        if @sms.length == 0
           []
         else
           list._Messages._Message.map { |msg|
@@ -69,12 +69,8 @@ module Network
                    :Content => content, :Date => date})
       end
 
-      def self.present?
-        @@present
-      end
-
-      def present?
-        self.present?
+      def self.simulate
+        @ids = [{bus: '.*'}]
       end
     end
   end

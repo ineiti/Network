@@ -3,10 +3,14 @@ require 'helperclasses'
 require 'serialmodem'
 
 module Network
-  module Connection
+  module Device
     class Serial < Stub
       include HelperClasses::DPuts
       include SerialModem
+
+      @ids = [{bus: 'usb', id: '12d1:1506'},
+              {bus: 'usb', id: '12d1:14ac'},
+              {bus: 'usb', id: '12d1:1c05'}]
 
       def initialize
         @connection = ERROR
@@ -63,19 +67,8 @@ module Network
         set_connection_type('3g')
       end
 
-      def self.present?
-        case System.run_str('lsusb')
-          when /12d1:1506/, /12d1:14ac/, /12d1:1c05/
-            true
-          when /airtel-modem/
-            true
-          else
-            false
-        end
-      end
+      def down
 
-      def present?
-        self.present?
       end
     end
   end

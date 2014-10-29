@@ -2,9 +2,11 @@ require 'hilinkmodem'
 require 'helperclasses'
 
 module Network
-  module Connection
+  module Device
     class Hilink < Stub
       include HelperClasses::DPuts
+
+      @ids = [{bus: 'usb', id: '12d1:14db'}]
 
       def start
         dputs(3) { 'Starting connection' }
@@ -75,14 +77,6 @@ module Network
 
       def set_2g
         HilinkModem::Network.set_connection_type('2g')
-      end
-
-      def self.present?
-        Kernel.system('lsusb -d 12d1:14db > /dev/null')
-      end
-
-      def present?
-        self.present?
       end
 
       def reset
