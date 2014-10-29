@@ -8,14 +8,14 @@ module Network
       include HelperClasses::DPuts
       include SerialModem
 
-      @ids = [{bus: 'usb', id: '12d1:1506'},
-              {bus: 'usb', id: '12d1:14ac'},
-              {bus: 'usb', id: '12d1:1c05'}]
+      @ids = [{bus: 'usb', uevent: {product: '12d1/1506/102'}, dirs: ['ep_02']},
+              {bus: 'usb', uevent: {product: '12d1/14ac'}},
+              {bus: 'usb', uevent: {product: '12d1/1c05'}}]
 
-      def initialize
+      def initialize(dev)
+        super(dev)
         @connection = ERROR
         setup_modem
-        status
       end
 
       def start
