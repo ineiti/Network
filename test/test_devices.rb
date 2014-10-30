@@ -13,7 +13,7 @@ end
 
 def main
   setup
-  test_check_same
+  #test_check_same_2
 end
 
 def test_check_same
@@ -22,6 +22,17 @@ def test_check_same
                           "ifindex" => "5"},
               :dirs => ["brif", "power", "bridge", "queues", "statistics"]}]
   id_1 = [{class: 'net', uevent: {interface: 'eth.*'}, dirs: ['bridge']}]
+
+  puts Network::Device::Stub.check_this(sys_net.first, id_1.first.keys, id_1.first).inspect
+end
+
+def test_check_same_2
+  sys_net = [{:class => "net",
+              :path => "/sys/class/net/eth1",
+              :dirs => ["power", "brport", "queues", "statistics"],
+              :uevent => {"interface" => "eth1", "ifindex" => "3"},
+              :address => "f0:ad:4e:02:07:40"}]
+  id_1 = [{:class => "net", :uevent => {:interface => "eth.*"}}]
 
   puts Network::Device::Stub.check_this(sys_net.first, id_1.first.keys, id_1.first).inspect
 end

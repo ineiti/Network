@@ -84,10 +84,12 @@ module Network
 
     def scan
       return unless File.exists? '/sys'
-      Dir['/sys/bus/usb/devices/*'].each { |usb|
-        add({bus: 'usb', path: usb, uevent: file_to_hash("#{usb}/uevent"),
-             dirs: get_dirs(usb)})
-      }
+      if false
+        Dir['/sys/bus/usb/devices/*'].each { |usb|
+          add({bus: 'usb', path: usb, uevent: file_to_hash("#{usb}/uevent"),
+               dirs: get_dirs(usb)})
+        }
+      end
       Dir['/sys/class/net/*'].each { |net|
         add({class: 'net', path: net, dirs: get_dirs(net)}.
                 merge(files_to_hash(net, %w(uevent address))))
@@ -95,13 +97,13 @@ module Network
     end
 
     def list
-      @present.each{|p|
+      @present.each { |p|
         dp "Present: #{p.dev._path}"
       }
     end
 
     def search_dev(filter)
-      @present.select{|p|
+      @present.select { |p|
         Stub.check_this(p.dev, filter.keys, filter)
       }
     end
@@ -145,6 +147,7 @@ module Network
               return false unless ds =~ /^#{d}$/
           end
         }
+        log_msg :Device, "Found device #{dev.inspect}"
         return true
       end
 

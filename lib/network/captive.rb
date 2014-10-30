@@ -7,7 +7,7 @@ module Network
     attr_accessor :usage_daily, :ips_idle, :mac_list, :ip_list, :restricted,
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
-                  :openvpn_allow_double, :allow_double
+                  :openvpn_allow_double, :allow_double, :connection
 # Iptable-rules:
 # filter:FCAPTIVE - should be called at the end of the filter:FORWARD-table
 #   allows new users and finishes with a BLOCK
@@ -21,7 +21,7 @@ module Network
     @http_proxy = nil
     @allow_dst = []
     @internal_ips = []
-    @captive_dnat = '192.168.10.1'
+    @captive_dnat = '192.168.40.1'
     @openvpn_allow_double = false
     @allow_src_direct = []
     @allow_src_proxy = []
@@ -37,6 +37,10 @@ module Network
     @users_conn = {}
     @disconnect_list = []
     @allow_double = true
+
+    @connection = nil
+    @operator = nil
+    @device = nil
 
     @usage_daily = 0
 
@@ -223,9 +227,9 @@ module Network
 
     # This can be called from time to time to check on idle people
     def cleanup
-      if Connection.status == Connection::DISCONNECTED
+      if @connection.status == Device::DISCONNECTED
         if ips_connected.length > 0
-          if Connection.type != Connection::CONNECTION_ALWAYS
+          if @operator.type != Operator::CONNECTION_ALWAYS
             log "Disconnecting everybody as we're not connected"
             users_disconnect_all
           else
@@ -235,7 +239,7 @@ module Network
       end
 
       if ips_connected.length == 0
-        Connection.stop if Operator.connection_type == Operator::CONNECTION_ONDEMAND
+        @connection.stop if @operator.connection_type == Operator::CONNECTION_ONDEMAND
       else
         ips_connected.each { |ip|
           packets = packets_count ip
@@ -276,8 +280,13 @@ module Network
       end
     end
 
-    def setup
+    def setup( conn = nil)
       log 'Setting up'
+      if conn
+        @connection = conn
+        @operator = conn.operator
+        @device = conn.device
+      end
 
       delete_chain :PREROUTING, :CAPTIVE, :nat
       delete_chain :PREROUTING, :NOCAPTIVE, :nat
