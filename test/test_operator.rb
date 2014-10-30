@@ -25,28 +25,23 @@ def test_sms
 end
 
 def test_credit_airtel
-  exit
-#ussd_send '*242*10#'
+  #ussd_send '*242*10#'
   ussd_send '*342#'
   ussd_send '4'
   sleep 10
 end
 
 def test_internet_left
-#dp $op.internet_left(true)
-  exit
   dp $op.internet_left(true)
   sleep 20
   dp $op.internet_left(true)
 end
 
 def test_internet_add
-  #$op.internet_add( 10_000_000 )
-  #sleep 20
-  #sleep 10
-  #dp $op.credit_left
-  #sleep 300
-  #dp $op.internet_left
+  $op.internet_add( 10_000_000 )
+  sleep 20
+  dp $op.credit_left
+  dp $op.internet_left
 end
 
 main

@@ -31,6 +31,10 @@ module Network
       @operators.inspect
     end
 
+    def list_names
+      @operators.keys
+    end
+
 =begin
       Methods needed:
 
@@ -53,7 +57,7 @@ module Network
       end
 
       def self.inherited(other)
-        ddputs(2) { "Inheriting operator #{other.inspect}" }
+        dputs(2) { "Inheriting operator #{other.inspect}" }
         Operator.operators[other.to_s.sub(/.*::/, '')] = other
         super(other)
       end
