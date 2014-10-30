@@ -14,24 +14,24 @@ module Network
 
       def initialize(dev)
         super(dev)
-        @connection = ERROR
-        setup_modem
+        @connection_status = ERROR
+        setup_modem(dev._dirs.find{|d| d =~ /ttyUSB/})
       end
 
-      def start
+      def connection_start
         ddputs(3) { 'Starting connection' }
-        @connection = CONNECTING
+        @connection_status = CONNECTING
         Kernel.system('netctl restart ppp0')
       end
 
-      def stop
+      def connection_stop
         ddputs(3) { 'Stopping connection' }
-        @connection = DISCONNECTING
+        @connection_status = DISCONNECTING
         Kernel.system('netctl stop ppp0')
       end
 
-      def status
-        @connection =
+      def connection_status
+        @connection_status =
             if %x[ netctl status ppp0 | grep Active ] =~ /: active/
               if Kernel.system('grep -q ppp0 /proc/net/dev')
                 if %x[ ifconfig ppp0 ]

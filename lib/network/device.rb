@@ -24,7 +24,7 @@ module Network
     end
 
     def add(dev)
-      ddputs(4) { "Checking whether we find #{dev}" }
+      dputs(4) { "Checking whether we find #{dev}" }
       @devices.each { |name, d|
         dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
         if d.check_new(dev)
@@ -69,6 +69,19 @@ module Network
           collect { |d| d.sub(/^.*\//, '') }
     end
 
+    def load
+      Dir[File.dirname(__FILE__) + '/devices/*.rb'].each { |f|
+        dputs(3) { "Adding device-file #{f}" }
+        require(f)
+      }
+    end
+
+    def start_drb
+      DRb.start_service 'druby://:9000', Network::Device
+      dputs(0) { "Server running at #{DRb.uri}" }
+      trap('INT') { DRb.stop_service }
+    end
+
     def scan
       return unless File.exists? '/sys'
       Dir['/sys/bus/usb/devices/*'].each { |usb|
@@ -78,6 +91,18 @@ module Network
       Dir['/sys/class/net/*'].each { |net|
         add({class: 'net', path: net, dirs: get_dirs(net)}.
                 merge(files_to_hash(net, %w(uevent address))))
+      }
+    end
+
+    def list
+      @present.each{|p|
+        dp "Present: #{p.dev._path}"
+      }
+    end
+
+    def search_dev(filter)
+      @present.select{|p|
+        Stub.check_this(p.dev, filter.keys, filter)
       }
     end
 
@@ -92,6 +117,10 @@ module Network
         @dev = dev
       end
 
+      def get_operator
+        return nil
+      end
+
       def self.inherited(other)
         dputs(2) { "Inheriting device #{other.inspect} - #{other.class.name}" }
         Device.devices[other.to_s.sub(/.*::/, '')] = other
@@ -102,7 +131,7 @@ module Network
         Stub.check_this(dev, [:path], @dev)
       end
 
-      def self.check_this(dev, attributes, dev_self)
+      def self.check_this(dev, attributes, dev_self = @dev)
         attributes.each { |a|
           att = a.to_sym
           ds = dev_self[att]
@@ -132,14 +161,7 @@ module Network
     end
   end
 
-  Dir[File.dirname(__FILE__) + '/devices/*.rb'].each { |f|
-    dputs(3) { "Adding device-file #{f}" }
-    require(f)
-  }
-
-  DRb.start_service 'druby://:9000', Network::Device
-  dputs(0) { "Server running at #{DRb.uri}" }
-  trap('INT') { DRb.stop_service }
-
+  Device.load
+  Device.start_drb
   Device.scan
 end

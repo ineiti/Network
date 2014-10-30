@@ -1,11 +1,8 @@
 module Network
   module Operator
-    attr_accessor :operators, :methods_needed, :connection_type,
-                  :cost_base, :cost_shared, :allow_free
-    extend self
-
+    attr_accessor :operators
     extend HelperClasses::DPuts
-
+    extend self
     MISSING = -1
     CONNECTED = 1
     DISCONNECTED = 2
@@ -15,40 +12,12 @@ module Network
     CONNECTION_ONDEMAND = 2
 
     @operators = {}
-    @operator = nil
-    @connection_type = CONNECTION_ALWAYS
-    @cost_base = 10
-    @cost_shared = 10
-    @allow_free = false
 
-
-    @methods_needed = [
-        :internet_left, :internet_add, :internet_cost,
-        :credit_left, :credit_add, :credit_send,
-        :has_promo, :user_cost_max
-    ]
-
-    def method_missing(name, *args)
-      super(name, args) unless @methods_needed.index(name)
-      raise NoOperator unless @operator
-      @operator.send(name, *args)
-    end
-
-    def chose(op)
-      dputs_func
-      dputs(3) { "network-operators: #{@operators.inspect}" }
-      raise 'OperatorNotFound' unless @operators.has_key? op.to_s
-      raise 'ConnectionNotFound' unless Connection.available?
-      @operator = @operators[op.to_s].new( Connection.available? )
-      #%w( credit_left internet_left ).each { |cmd|
-      #  ddputs(3) { "Sending command #{cmd}" }
-      #  @operator.send(cmd)
-      #}
-      @operator
-    end
-
-    def name
-      @operator and @operator.class.name.sub(/.*::/, '')
+    def search_name(name, dev)
+      op = @operators.select{|k,v|
+        k == name.to_s
+      }
+      op.size > 0 ? op.first.last.new(dev) : nil
     end
 
     def load
@@ -58,17 +27,29 @@ module Network
       }
     end
 
-    def present?
-      @operator
+    def list
+      @operators.inspect
     end
 
+=begin
+      Methods needed:
+
+      :internet_left, :internet_add, :internet_cost,
+      :credit_left, :credit_add, :credit_send,
+      :has_promo, :user_cost_max
+=end
     class Stub
+      attr_accessor :connection_type,
+                    :cost_base, :cost_shared, :allow_free
       extend HelperClasses::DPuts
 
-      attr_accessor :modem
+      @connection_type = CONNECTION_ALWAYS
+      @cost_base = 10
+      @cost_shared = 10
+      @allow_free = false
 
-      def initialize( modem )
-        @modem = modem
+      def initialize(dev)
+        @device = dev
       end
 
       def self.inherited(other)
@@ -76,13 +57,8 @@ module Network
         Operator.operators[other.to_s.sub(/.*::/, '')] = other
         super(other)
       end
-
-      def method_missing(name, *args)
-        raise NotSupported if Operator.methods_needed.index name
-        super(name, *args)
-      end
     end
   end
-end
 
-Network::Operator.load
+  Operator.load
+end

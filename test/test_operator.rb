@@ -4,37 +4,27 @@ require 'network'
 require 'helperclasses'
 include HelperClasses::DPuts
 
-sleep 3
-
-$con = Network::Connection.chose(:Serial) or raise 'ConnectionNotFound'
-$op = Network::Operator.chose(:Airtel) or raise 'OperatorNotFound'
-dp $op.name
-#dp $op.internet_left( true )
-#sleep 20
-#dp $op.internet_left( true )
-
-def ussd_send(str)
-  $op.modem.ussd_send(str)
-  sleep 5
-  dp $op.modem.ussd_fetch(str)
-  sleep 2
+def setup
+  dp Network::Operator.list
+  return unless ($dev = Network::Device.search_dev({uevent: {driver: 'option'}})).length > 0
+  dp $dev.inspect
+  return unless $con = Network::Connection.new($dev.first, :Airtel)
+  $op = $con.operator
 end
 
-$op.modem.sms_send('62154352', 'test1')
+def main
+  setup
+  test_sms
+end
 
-if true
-  #$op.internet_add( 10_000_000 )
-  #sleep 20
-  #sleep 10
-  #dp $op.credit_left
-  #sleep 300
-  #dp $op.internet_left
-
-
-  dp $op.modem.sms_scan
+def test_sms
+  dp $op.device.sms_scan
   sleep 10
-  dp $op.modem.serial_sms.inspect
+  dp $op.device.serial_sms.inspect
   sleep 1
+end
+
+def test_credit_airtel
   exit
 #ussd_send '*242*10#'
   ussd_send '*342#'
@@ -42,8 +32,21 @@ if true
   sleep 10
 end
 
+def test_internet_left
 #dp $op.internet_left(true)
-exit
-dp $op.internet_left(true)
-sleep 20
-dp $op.internet_left(true)
+  exit
+  dp $op.internet_left(true)
+  sleep 20
+  dp $op.internet_left(true)
+end
+
+def test_internet_add
+  #$op.internet_add( 10_000_000 )
+  #sleep 20
+  #sleep 10
+  #dp $op.credit_left
+  #sleep 300
+  #dp $op.internet_left
+end
+
+main

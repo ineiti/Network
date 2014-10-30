@@ -1,7 +1,6 @@
 module Network
   module Operator
     class Tigo < Stub
-      attr_accessor :modem
 
       @@credit=[
           {cost: 150, volume: 1_000_000, code: 100},
@@ -14,13 +13,9 @@ module Network
           {cost: 50_000, volume: 4_000_000_000, code: 2030}
       ]
 
-      def initialize
-
-      end
-
       def ussd_send(str)
         begin
-          @modem.ussd_send(str)
+          @device.ussd_send(str)
         rescue 'USSDinprogress' => e
           return nil
         end
@@ -28,7 +23,7 @@ module Network
 
       def credit_left
         ussd_send('100#') or return nil
-        if str = @modem.ussd_fetch('*100#')
+        if str = @device.ussd_fetch('*100#')
           if left = str.match(/([0-9\.]+)*\s*CFA/)
             return left[1]
           end
@@ -46,11 +41,11 @@ module Network
       def internet_left(force = false)
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic > 60 &&
-            @modem.status == Connection::CONNECTED)
+                @device.status == Connection::CONNECTED)
           ussd_send('*128#')
           @last_traffic = Time.now
         end
-        if str = @modem.ussd_fetch('*128#')
+        if str = @device.ussd_fetch('*128#')
           if left = str.match(/([0-9\.]+\s*.[oObB])/)
             bytes, mult = left[1].split
             (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
@@ -78,7 +73,7 @@ module Network
 
       def internet_add(volume)
         cr = @@credit.find { |c| c._volume == volume } or return nil
-        @modem.sms_send(cr._code, 'kattir')
+        @device.sms_send(cr._code, 'kattir')
       end
 
       def internet_cost

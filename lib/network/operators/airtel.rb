@@ -1,7 +1,7 @@
 module Network
   module Operator
     class Airtel < Stub
-      attr_accessor :modem
+      attr_accessor :device
 
       @@credit=[
           {cost: 250, volume: 10_000_000, code: 10},
@@ -12,14 +12,14 @@ module Network
           {cost: 50_000, volume: 5_000_000_000, code: 5}
       ]
 
-      def initialize(modem)
-        super( modem )
+      def initialize(device)
+        super(device)
         dp 'Setting up sms_new'
-        @modem.serial_sms_new.push( Proc.new {|list, id| new_sms(list, id)})
+        @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
         @internet_left = -1
       end
 
-      def new_sms( list, id )
+      def new_sms(list, id)
         if list[id][1] == '"CPTInternet"'
           if str = list[id][4]
             if left = str.match(/([0-9\.]+\s*.[oObB])/)
@@ -30,13 +30,13 @@ module Network
               @internet_left = bytes.to_i
             end
           end
-          @modem.serial_sms_to_delete.push id
+          @device.serial_sms_to_delete.push id
         end
       end
 
       def ussd_send(str)
         begin
-          @modem.ussd_send(str)
+          @device.ussd_send(str)
         rescue 'USSDinprogress' => e
           return nil
         end
@@ -44,13 +44,13 @@ module Network
 
       def credit_left(force = false)
         dp 'cl'
-        if (force || !@last_credit ) ||
+        if (force || !@last_credit) ||
             (Time.now - @last_credit >= 60 &&
-            @modem.status == Connection::CONNECTED)
+                @device.status == Connection::CONNECTED)
           ussd_send('*137#')
           @last_credit = Time.now
         end
-        if str = @modem.ussd_fetch('*137#')
+        if str = @device.ussd_fetch('*137#')
           if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
             return left[1]
           end
@@ -67,9 +67,9 @@ module Network
 
       def internet_left(force = false)
         dp 'il'
-        if ( force || !@last_traffic ) ||
+        if (force || !@last_traffic) ||
             (Time.now - @last_traffic >= 60 &&
-            @modem.status == Connection::CONNECTED)
+                @device.status == Connection::CONNECTED)
           ussd_send('*342#')
           ussd_send('4')
           @last_traffic = Time.now
@@ -80,7 +80,7 @@ module Network
       def internet_add(volume)
         cr = @@credit.find { |c| c._volume == volume } or return
         dputs(2) { "Adding #{cr.inspect} to internet" }
-        @modem.ussd_send("*242*#{cr._code}#")
+        @device.ussd_send("*242*#{cr._code}#")
       end
 
       def internet_cost
