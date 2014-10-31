@@ -21,7 +21,7 @@ module Network
     @http_proxy = nil
     @allow_dst = []
     @internal_ips = []
-    @captive_dnat = '192.168.40.1'
+    @captive_dnat = '10.0.0.2'
     @openvpn_allow_double = false
     @allow_src_direct = []
     @allow_src_proxy = []
@@ -42,6 +42,8 @@ module Network
     @operator = nil
     @device = nil
 
+    @iptables_wait = ''
+
     @usage_daily = 0
 
     def log(msg)
@@ -50,7 +52,7 @@ module Network
 
     def iptables(*cmds)
       dputs(3) { cmds.join(' ') }
-      System.run_str "iptables -w #{ cmds.join(' ') }"
+      System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
     end
 
     def ipnat(*cmds)
@@ -267,7 +269,7 @@ module Network
     def delete_chain(par, ch, table = nil)
       chain = ch.to_s
       ipt = table ? "-t #{table}" : ''
-      if iptables(ipt, '-L', par).index(chain)
+      if iptables(ipt, '-L -n', par).index(chain)
         if par
           iptables ipt, "-D #{par.to_s} -j #{chain}"
         end
@@ -381,7 +383,7 @@ module Network
     end
 
     def user_connect(ip, n, free = false)
-      Connection.start
+      @connection.start
       name = n.to_s
 
       if user_connected name

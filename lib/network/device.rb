@@ -138,6 +138,7 @@ module Network
           att = a.to_sym
           ds = dev_self[att]
           d = dev[att]
+          dputs(3){"Checking #{att} - #{ds.inspect} - #{d.inspect}"}
           case ds.class.to_s
             when /Array/
               ds.each { |v| return false unless d.index(v) }
@@ -152,6 +153,7 @@ module Network
       end
 
       def self.check_new(dev)
+        dputs(3){"New device #{dev}"}
         self.ids.each { |id|
           return true if self.check_this(dev, id.keys, id)
         }
