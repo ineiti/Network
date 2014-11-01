@@ -3,24 +3,20 @@ module Network
     class Ethernet < Stub
       @ids = [{class: 'net', uevent: {interface: 'eth.*'}}]
 
-      def start
+      def connection_start
 
       end
 
-      def stop
+      def connection_stop
 
       end
 
-      def may_stop
+      def connection_may_stop
 
       end
 
-      def status
+      def connection_status
         CONNECTED
-      end
-
-      def status_old
-        4
       end
 
       def reset

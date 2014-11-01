@@ -1,6 +1,7 @@
 module Network
   module Operator
-    attr_accessor :operators
+    attr_accessor :operators,
+                  :cost_base, :cost_shared, :allow_free
     extend HelperClasses::DPuts
     extend self
     MISSING = -1
@@ -12,6 +13,9 @@ module Network
     CONNECTION_ONDEMAND = 2
 
     @operators = {}
+    @cost_base = 10
+    @cost_shared = 10
+    @allow_free = false
 
     def search_name(name, dev)
       op = @operators.select{|k,v|
@@ -35,6 +39,12 @@ module Network
       @operators.keys
     end
 
+    def clean_config
+      @cost_base &&= @cost_base.to_i
+      @cost_shared &&= @cost_shared.to_i
+      @allow_free = @allow_free == 'true'
+    end
+
 =begin
       Methods needed:
 
@@ -43,17 +53,25 @@ module Network
       :has_promo, :user_cost_max
 =end
     class Stub
-      attr_accessor :connection_type,
-                    :cost_base, :cost_shared, :allow_free
+      attr_accessor :connection_type
       extend HelperClasses::DPuts
-
-      @connection_type = CONNECTION_ALWAYS
-      @cost_base = 10
-      @cost_shared = 10
-      @allow_free = false
 
       def initialize(dev)
         @device = dev
+        @connection_type = CONNECTION_ALWAYS
+      end
+
+      def user_cost_max
+        Operator.cost_base + Operator.cost_shared
+      end
+
+      def user_cost_now
+        connected = Captive.users_connected.length
+        Operator.cost_base + Operator.cost_shared / [1, connected].max
+      end
+
+      def name
+        self.class.name
       end
 
       def self.inherited(other)

@@ -8,17 +8,17 @@ module Network
 
       @ids = [{bus: 'usb', id: '12d1:14db'}]
 
-      def start
+      def connection_start
         dputs(3) { 'Starting connection' }
         HilinkModem::Dialup.connect
       end
 
-      def stop
+      def connection_stop
         dputs(3) { 'Stopping connection' }
         HilinkModem::Dialup.disconnect
       end
 
-      def status
+      def connection_status
         if status = HilinkModem::Monitoring.status
           dputs(3) { "#{status.inspect}" }
           case HilinkModem::Monitoring.status._ConnectionStatus.to_i

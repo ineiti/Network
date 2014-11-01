@@ -134,13 +134,13 @@ module Network
     def var_array(name, splitchar = ',')
       val = self.send("#{name}")
       self.send("#{name}=", val.split(splitchar))
-      ddputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+      dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
     end
 
     def var_string_nil(name)
       val = self.send("#{name}")
-      self.send("#{name}=", val.length > 0 ? val : nil)
-      ddputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+      self.send("#{name}=", (val && val.length > 0) ? val : nil)
+      dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
     end
 
     def var_bool(name)
@@ -151,7 +151,7 @@ module Network
                false
              end
       self.send("#{name}=", bool)
-      ddputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+      dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
     end
 
     def clean_config
@@ -269,7 +269,7 @@ module Network
     def delete_chain(par, ch, table = nil)
       chain = ch.to_s
       ipt = table ? "-t #{table}" : ''
-      if iptables(ipt, '-L -n', par).index(chain)
+      if iptables(ipt, '-L', par, '-n').index(chain)
         if par
           iptables ipt, "-D #{par.to_s} -j #{chain}"
         end
@@ -282,8 +282,8 @@ module Network
       end
     end
 
-    def setup( conn = nil)
-      log 'Setting up'
+    def setup(conn = nil)
+      log "Setting up with #{conn.inspect}"
       if conn
         @connection = conn
         @operator = conn.operator
@@ -422,7 +422,7 @@ module Network
       @users_conn.delete name
       ip_deny ip
 
-      @users_conn.length == 0 and Connection.may_stop
+      @users_conn.length == 0 and @connection.may_stop
     end
 
     def user_cost_now
