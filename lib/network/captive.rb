@@ -21,7 +21,7 @@ module Network
     @http_proxy = nil
     @allow_dst = []
     @internal_ips = []
-    @captive_dnat = '10.0.0.2'
+    @captive_dnat = '192.168.3.148'
     @openvpn_allow_double = false
     @allow_src_direct = []
     @allow_src_proxy = []
