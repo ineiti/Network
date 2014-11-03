@@ -14,7 +14,6 @@ module Network
 
       def initialize(device)
         super(device)
-        dp 'Setting up sms_new'
         @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
         @internet_left = -1
       end
@@ -43,7 +42,6 @@ module Network
       end
 
       def credit_left(force = false)
-        dp 'cl'
         if (force || !@last_credit) ||
             (Time.now - @last_credit >= 60 &&
                 @device.status == Connection::CONNECTED)
@@ -66,7 +64,6 @@ module Network
       end
 
       def internet_left(force = false)
-        dp 'il'
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic >= 60 &&
                 @device.status == Connection::CONNECTED)

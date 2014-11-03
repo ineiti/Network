@@ -18,8 +18,9 @@ module Network
     @allow_free = false
 
     def search_name(name, dev)
+      dputs(3){"Looking for #{name}"}
       op = @operators.select{|k,v|
-        k == name.to_s
+        k.downcase == name.to_s.downcase
       }
       op.size > 0 ? op.first.last.new(dev) : nil
     end

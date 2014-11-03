@@ -1,6 +1,8 @@
 DEBUG_LVL = 3
 require 'network'
 require 'drb/drb'
+require 'helperclasses/dputs'
+include HelperClasses::DPuts
 
 def setup
   DRb.start_service
@@ -8,12 +10,27 @@ def setup
   handler = DRbObject.new_with_uri('druby://localhost:9000')
 #puts handler.add( {} )
   Network::Device.list
-  p Network::Device.search_dev({uevent: {driver: 'option'}})
+  @device = Network::Device.search_dev({uevent: {driver: 'option'}}).first
+  exit unless @device
 end
 
 def main
   setup
   #test_check_same_2
+  test_send_delete_sms
+end
+
+def test_send_delete_sms
+  @device.sms_scan
+  sleep 2
+  @device.sms_list.each{|sms|
+    dp sms.inspect
+    @device.sms_delete( sms._Index )
+  }
+  sleep 2
+  @device.sms_scan
+  sleep 2
+  @device.sms_list.inspect
 end
 
 def test_check_same

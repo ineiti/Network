@@ -41,7 +41,9 @@ module Network
       def internet_left(force = false)
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic > 60 &&
-                @device.status == Connection::CONNECTED)
+                @device.connection_status == Device::CONNECTED) ||
+            (Time.now - @last_traffic > 3600 &&
+                @device.connection_status == Device::DISCONNECTED)
           ussd_send('*128#')
           @last_traffic = Time.now
         end

@@ -21,13 +21,13 @@ module Network
       def connection_start
         ddputs(3) { 'Starting connection' }
         @connection_status = CONNECTING
-        Kernel.system('netctl restart ppp0')
+        Kernel.system('netctl restart ppp')
       end
 
       def connection_stop
         ddputs(3) { 'Stopping connection' }
         @connection_status = DISCONNECTING
-        Kernel.system('netctl stop ppp0')
+        Kernel.system('netctl stop ppp')
       end
 
       def connection_status
@@ -48,7 +48,6 @@ module Network
       end
 
       def sms_list
-        sms_scan
         @serial_sms.collect { |sms_id, sms|
           {:Index => sms_id, :Phone => sms[1], :Date => sms[3],
            :Content => sms[4]}

@@ -6,20 +6,13 @@ require 'network'
 include Network
 include HelperClasses::DPuts
 
-if ! SMScontrol.modem
-  puts 'No modem present'
-  exit
-end
-
-SMScontrol.modem.set_2g
-SMScontrol.state_goal = MODEM_DISCONNECTED
-SMScontrol.make_connection
-#SMS.rb.modem.sms_send( 100, "internet" )
-
+$smsc = SMScontrol.new
+#$smsc.device.sms_send(99836457, 'test from Smileplug')
+#exit
 loop do
-  SMScontrol.check_sms
-  SMScontrol.check_connection
-  dputs(0){ SMScontrol.state_to_s }
+  $smsc.check_sms
+  $smsc.check_connection
+  dputs(0){ $smsc.state_to_s }
   sleep 10
 end
 

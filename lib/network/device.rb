@@ -78,13 +78,13 @@ module Network
 
     def start_drb
       DRb.start_service 'druby://:9000', Network::Device
-      dputs(0) { "Server running at #{DRb.uri}" }
+      log_msg :Device, "Server running at #{DRb.uri}"
       trap('INT') { DRb.stop_service }
     end
 
     def scan
       return unless File.exists? '/sys'
-      if false
+      if true
         Dir['/sys/bus/usb/devices/*'].each { |usb|
           add({bus: 'usb', path: usb, uevent: file_to_hash("#{usb}/uevent"),
                dirs: get_dirs(usb)})
@@ -98,7 +98,7 @@ module Network
 
     def list
       @present.each { |p|
-        dp "Present: #{p.dev._path}"
+        dputs(1) { "Present: #{p.dev._path}" }
       }
     end
 
@@ -127,6 +127,7 @@ module Network
       end
 
       def get_operator
+        dputs(3) { 'Returning :Direct' }
         return :Direct
       end
 
