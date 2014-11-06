@@ -47,6 +47,10 @@ module Network
     @usage_daily = 0
 
     def log(msg)
+      dputs(2){msg}
+    end
+
+    def log_(msg)
       log_msg :Captive, msg
     end
 
@@ -132,7 +136,7 @@ module Network
     end
 
     def var_array(name, splitchar = ',')
-      val = self.send("#{name}")
+      val = self.send("#{name}") or return []
       self.send("#{name}=", val.split(splitchar))
       dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
     end
@@ -144,7 +148,7 @@ module Network
     end
 
     def var_bool(name)
-      val = self.send("#{name}")
+      val = self.send("#{name}") or return false
       bool = if val.length > 0 then
                val.to_s == 'true' ? true : false
              else
@@ -167,7 +171,7 @@ module Network
     end
 
     def clear
-      log 'Clearing IPs and refreshing MACs'
+      log_ 'Clearing IPs and refreshing MACs'
       ipnat '-F CAPTIVE'
       iptables '-F FCAPTIVE'
 
@@ -175,15 +179,15 @@ module Network
       @internal_ips ||=
           System.run_str ('ip addr | grep "inet " | '+
               'sed -e "s/.*inet \([^\/ ]*\).*/\1/" | grep -v 127.0.0.1)').split
-      log "Internal is #{internal_ips}"
+      log_ "Internal is #{internal_ips}"
       (allow_dhcp + internal_ips + allow_dst).each { |ip|
-        log "Allowing requests to #{ip} to go through"
+        log_ "Allowing requests to #{ip} to go through"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
         iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
       }
 
       @allow_src_direct.each { |ip|
-        log "Allowing requests from #{ip} to go through"
+        log_ "Allowing requests from #{ip} to go through"
         ipnat "-A NOCAPTIVE -s #{ip} -j ACCEPT"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
         iptables "-A FCAPTIVE -s #{ip} -j ACCEPT"
@@ -191,21 +195,21 @@ module Network
       }
 
       if @captive_dnat
-        log "Captive dnatting #{@captive_dnat}"
+        log_ "Captive dnatting #{@captive_dnat}"
         ipnat "-I CAPTIVE -j DNAT --to-dest #{@captive_dnat}"
       end
 
       @ip_list.each { |ip|
-        log "Accepting IP #{ip}"
+        log_ "Accepting IP #{ip}"
         ip_accept ip
       }
       @mac_list.each { |mac|
-        log "Accepting mac #{mac}"
+        log_ "Accepting mac #{mac}"
         mac_accept mac
       }
 
       @allow_src_proxy.each { |ip|
-        log "Allowing requests from #{ip} to go through Proxy"
+        log_ "Allowing requests from #{ip} to go through Proxy"
         ipnat "-A NOCAPTIVE -s #{ip} -j INTERNET"
         ipnat "-A NOCAPTIVE -d #{ip} -j INTERNET"
         iptables "-A FCAPTIVE -s #{ip} -j ACCEPT"
@@ -213,7 +217,7 @@ module Network
       }
 
       iptables '-A FCAPTIVE -j RETURN'
-      log 'Finished clean up'
+      log_ 'Finished clean up'
     end
 
     def accept_all
@@ -232,10 +236,10 @@ module Network
       if @connection.status == Device::DISCONNECTED
         if ips_connected.length > 0
           if @operator.type != Operator::CONNECTION_ALWAYS
-            log "Disconnecting everybody as we're not connected"
+            log_ "Disconnecting everybody as we're not connected"
             users_disconnect_all
           else
-            log 'Keeping users while we hope for a return of the connection'
+            log_ 'Keeping users while we hope for a return of the connection'
           end
         end
       end
@@ -248,7 +252,7 @@ module Network
           log "Checking ip #{ip} - has #{packets} packets"
           if packets == 0
             if @ips_idle.index ip
-              log "No packets, kicking #{ip}"
+              log_ "No packets, kicking #{ip}"
               user_disconnect_ip ip
               @ips_idle.delete ip
               log "ips_idle is now #{@ips_idle}"
@@ -262,7 +266,7 @@ module Network
         }
       end
 
-      log 'Clearing counters'
+      dputs(2) { 'Clearing counters' }
       iptables '-Z FCAPTIVE'
     end
 
@@ -283,7 +287,7 @@ module Network
     end
 
     def setup(conn = nil)
-      log "Setting up with #{conn.inspect}"
+      log_ "Setting up with #{conn.inspect}"
       if conn
         @connection = conn
         @operator = conn.operator
@@ -307,7 +311,7 @@ module Network
       clear
 
       ips_connected.each { |ip|
-        log "Re-connecting #{ip}"
+        log_ "Re-connecting #{ip}"
         ip_accept ip
       }
 
@@ -416,7 +420,7 @@ module Network
     end
 
     def user_disconnect(name, ip)
-      log "user_disconnect #{name}:#{ip}"
+      log_ "user_disconnect #{name}:#{ip}"
 
       return unless ip = @users_conn[name]
       @users_conn.delete name
