@@ -1,8 +1,9 @@
-DEBUG_LVL = 3
+DEBUG_LVL = 2
 require 'network'
 require 'drb/drb'
 require 'helperclasses/dputs'
 include HelperClasses::DPuts
+
 
 def setup
   DRb.start_service
@@ -17,7 +18,11 @@ end
 def main
   setup
   #test_check_same_2
-  test_send_delete_sms
+  #test_send_delete_sms
+  test_list_devices
+end
+
+def test_list_devices
 end
 
 def test_send_delete_sms

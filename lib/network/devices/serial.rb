@@ -10,40 +10,40 @@ module Network
 
       @ids = [{bus: 'usb', uevent: {product: '12d1/1506/102'}, dirs: ['ep_02']},
               {bus: 'usb', uevent: {product: '12d1/14ac'}},
-              {bus: 'usb', uevent: {product: '12d1/1c05'}}]
+              {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_02']}]
 
       def initialize(dev)
         super(dev)
         @connection_status = ERROR
-        setup_modem(dev._dirs.find{|d| d =~ /ttyUSB/})
+        setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
       end
 
       def connection_start
-        ddputs(3) { 'Starting connection' }
+        ddputs(2) { 'Starting connection' }
         @connection_status = CONNECTING
         Kernel.system('netctl restart ppp')
       end
 
       def connection_stop
-        ddputs(3) { 'Stopping connection' }
+        ddputs(2) { 'Stopping connection' }
         @connection_status = DISCONNECTING
         Kernel.system('netctl stop ppp')
       end
 
       def connection_status
         @connection_status =
-            if %x[ netctl status ppp0 | grep Active ] =~ /: active/
-              if Kernel.system('grep -q ppp0 /proc/net/dev')
-                if %x[ ifconfig ppp0 ]
-                  CONNECTED
-                else
-                  CONNECTING
-                end
+            if System.run_str('netctl status ppp | grep Active') =~ /: active/
+              if System.run_bool 'grep -q ppp0 /proc/net/route'
+                CONNECTED
+              elsif System.run_bool 'pidof pppd'
+                CONNECTING
               else
                 ERROR_CONNECTION
               end
-            else
+            elsif System.run_str('netctl status ppp | grep Active') =~ /: inactive/
               DISCONNECTED
+            else
+              ERROR_CONNECTION
             end
       end
 

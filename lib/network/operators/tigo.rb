@@ -21,8 +21,15 @@ module Network
         end
       end
 
-      def credit_left
-        ussd_send('100#') or return nil
+      def credit_left(force = false)
+        if (force || !@last_credit) ||
+            (Time.now - @last_credit > 60 &&
+                @device.connection_status == Device::CONNECTED) ||
+            (Time.now - @last_credit > 3600 &&
+                @device.connection_status == Device::DISCONNECTED)
+          ussd_send('*100#')
+          @last_credit = Time.now
+        end
         if str = @device.ussd_fetch('*100#')
           if left = str.match(/([0-9\.]+)*\s*CFA/)
             return left[1]
@@ -34,8 +41,8 @@ module Network
         ussd_send("*123*#{code}#") or return nil
       end
 
-      def credit_send(nbr, credit)
-        ussd_send("*190*1234*#{nbr}*#{credit}#") or return nil
+      def credit_send(nbr, credit, pass = '0000')
+        ussd_send("*190*#{pass}*#{nbr}*#{credit}#") or return nil
       end
 
       def internet_left(force = false)
@@ -82,6 +89,10 @@ module Network
         @@credit.collect { |c|
           [c._cost, c._volume]
         }
+      end
+
+      def callback(nbr)
+        @device.ussd_send( "*222*235#{nbr}#")
       end
 
       def name

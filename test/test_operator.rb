@@ -1,4 +1,4 @@
-DEBUG_LVL=2
+DEBUG_LVL=3
 
 require 'network'
 require 'helperclasses'
@@ -8,13 +8,32 @@ def setup
   dp Network::Operator.list
   return unless ($dev = Network::Device.search_dev({uevent: {driver: 'option'}})).length > 0
   dp $dev.inspect
-  return unless $con = Network::Connection.new($dev.first, :Airtel)
+  return unless $con = Network::Connection.new($dev.first)
+  $dev = $dev.first
   $op = $con.operator
 end
 
 def main
   setup
-  test_sms
+  #test_tigo_callback
+  test_send_credit
+end
+
+def test_tigo_callback
+  #$op.credit_add('5047459016658')
+  #$op.callback('93999699')
+  sleep 10
+end
+
+def test_send_credit
+  #dp $op.credit_left
+  #sleep 10
+  #dp $op.credit_left
+  dp $op.credit_send( '93999699', 100)
+  (1..10).each{
+    dp $dev.sms_list
+    sleep 3
+  }
 end
 
 def test_sms

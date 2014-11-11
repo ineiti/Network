@@ -47,7 +47,7 @@ module Network
     @usage_daily = 0
 
     def log(msg)
-      dputs(2){msg}
+      dputs(2) { msg }
     end
 
     def log_(msg)
@@ -63,40 +63,27 @@ module Network
       iptables "-t nat #{cmds.join(' ')}"
     end
 
-    def ip(op, ip)
-      iptables "#{op} FCAPTIVE -s #{ip} -j ACCEPT"
-      iptables "#{op} FCAPTIVE -d #{ip} -j ACCEPT"
-      ipnat "#{op} CAPTIVE -s #{ip} -j INTERNET"
-    end
-
-    def ip_drop(op, ip)
-      iptables "#{op} FCAPTIVE -s #{ip} -j DROP"
-      iptables "#{op} FCAPTIVE -d #{ip} -j DROP"
-    end
-
-    def ip_accept(ip)
-      ip '-I', ip
-    end
-
-    def ip_deny(ip)
-      ip '-D', ip
-    end
-
     def ip_check(ip)
       return unless ip
       !@ip_list.index ip
     end
 
-    def ip_add(ip)
-      if !ip_check ip
-        @ip_list.push ip
-        ip_accept ip
-      end
+    def ip_drop(ip, apply)
+      op = apply ? '-D' : '-I'
+      iptables "#{op} FCAPTIVE -s #{ip} -j DROP"
+      iptables "#{op} FCAPTIVE -d #{ip} -j DROP"
     end
 
-    def ip_del(ip)
-      @ip_list.remove ip
-      ip_deny ip
+    def ip_forward(ip, allow)
+      return unless ip_check(ip) != allow
+      @ip_list.push ip
+
+      op = allow ? '-I' : '-D'
+      iptables "#{op} FCAPTIVE -s #{ip} -j ACCEPT"
+      iptables "#{op} FCAPTIVE -d #{ip} -j ACCEPT"
+      ipnat "#{op} CAPTIVE -s #{ip} -j INTERNET"
+
+      ip_drop(ip, !allow)
     end
 
     def mac_accept(mac)
@@ -312,7 +299,7 @@ module Network
 
       ips_connected.each { |ip|
         log_ "Re-connecting #{ip}"
-        ip_accept ip
+        ip_forward ip, true
       }
 
       if @restricted
@@ -325,50 +312,22 @@ module Network
       log "Blocking #{ip}"
     end
 
-    def rest_addr(cmd)
-      %w( 10.1.0.0/24 10.0.0.0/24 10.1.10.0/21 10.2.10.0/21 ).each { |net|
-        ip_drop cmd, net
+    # Restriction for a particular center - should be made more general...
+    def restr_man(net, block)
+      %w( 10.1.0.0/24 10.1.10.0/21 10.2.10.0/21 ).each { |default|
+        ip_drop default, block
       }
-      if cmd == '-I'
-        ip_accept '10.9.0.0/16'
-        ip_accept '10.1.14.0/24'
-      else
-        ip_deny '10.9.0.0/16'
-        ip_deny '10.1.14.0/24'
-      end
-    end
-
-    def rest_add(net = nil)
-      rest_addr '-I'
-      if net
-        ip_accept net
-      end
-    end
-
-    def rest_del(net = nil)
-      rest_addr '-D'
-      if net
-        ip_deny net
-      end
-    end
-
-    def rest_txt_ip(name)
-      case name
-        when /info1/
-          '10.1.11.0/24'
-        when /info2/
-          '10.1.12.0/24'
-        else
-          ''
-      end
+      ip_drop net, !block
     end
 
     def restriction_set(rest = nil)
-      @restricted and rest_del @restricted
+      @restricted and restr_man(@restricted, false)
+      @restricted = rest
       case rest
-        when /info1/, /info2/
-          rest_add(rest_txt_ip rest)
-          @restricted = rest
+        when /info1/
+          restr_man('10.1.11.0/24', true)
+        when /info2/
+          restr_man('10.1.12.0/24', true)
         else
           @restricted = nil
       end
@@ -398,9 +357,9 @@ module Network
       same_ip = @users_conn.key ip
       log "Connecting user #{name} - #{ip}"
       @users_conn[name] = ip
-      ip_accept ip
 
       same_ip and user_disconnect(same_ip, ip)
+      ip_forward ip, true
     end
 
     def user_disconnect_name(name)
@@ -424,13 +383,13 @@ module Network
 
       return unless ip = @users_conn[name]
       @users_conn.delete name
-      ip_deny ip
+      ip_forward ip, false
 
       @users_conn.length == 0 and @connection.may_stop
     end
 
     def user_cost_now
-      17
+      10
     end
   end
 end

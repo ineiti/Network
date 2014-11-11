@@ -9,6 +9,8 @@ module Network
 
     UNKNOWN = -1
 
+    @connection = nil
+
     def initialize
       @state_now = Device::DISCONNECTED
       @state_goal = UNKNOWN
@@ -17,6 +19,7 @@ module Network
       @phone_main = 99836457
       @state_traffic = 0
       @min_traffic = 100000
+      @traffic_goal = 0
       @sms_injected = []
       @device = Network::Device.search_dev({uevent:{driver: 'option'}}).first
       return unless @device
@@ -92,6 +95,7 @@ module Network
       if @state_goal != @state_now
         if @state_now == Device::ERROR_CONNECTION
           @state_error += 1
+          log_msg :SMScontrol, 'Connection Error - stopping'
           @connection.stop
           sleep 2
           #if @state_error > 5
@@ -99,6 +103,7 @@ module Network
           #end
         end
         if @state_goal == Device::DISCONNECTED
+          log_msg :SMScontrol, 'Goal is ::Disconnected'
           @connection.stop
         elsif @state_goal == Device::CONNECTED
           if @state_traffic < @min_traffic
@@ -150,7 +155,7 @@ module Network
                   log_msg :SMScontrol, 'Airtel - make connection'
                   @send_status = true
               end
-            when :Tigo2
+            when :Tigo
               case sms._Content
                 when /200.*cfa/i
                   @state_goal = Device::DISCONNECTED
@@ -165,8 +170,10 @@ module Network
                   log_msg :SMS, 'Getting internet-credit'
                   @device.sms_send(1111, 'internet')
                 when /souscription reussie/i
-                  make_connection
-                  log_msg :SMS, 'Making connection'
+                  log_msg :SMS, 'Asking credit'
+                  @state_traffic = @operator.internet_left( true )
+                  @state_goal = UNKNOWN
+                  #make_connection
                   @send_status = true
               end
           end

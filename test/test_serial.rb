@@ -1,7 +1,14 @@
-DEBUG_LVL=5
+DEBUG_LVL=2
 
 require 'network'
 require 'helperclasses'
 
-Network::Modem.present? or ( puts "no modem"; exit )
+$dev = Network::Device.search_dev({uevent:{driver: 'option'}}).first or exit
+
+$dev.connection_start
+
+loop do
+  puts $dev.connection_status
+  sleep 0.5
+end
 
