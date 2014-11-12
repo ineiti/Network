@@ -67,7 +67,7 @@ module Network
       end
 
       def down
-
+        kill
       end
     end
   end

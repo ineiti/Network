@@ -16,7 +16,8 @@ module Network
     @present = []
 
     def env_to_dev(env)
-      env
+      ddputs(2){"udev-change: #{env}"}
+      {path: ".*/#{env.sub(/^.*\//, '')}"}
     end
 
     def add_udev(env)
@@ -40,8 +41,8 @@ module Network
 
     def del(dev)
       @present.each { |d|
-        if d.check_this(dev)
-          log_msg :Listener, "Deleting device #{d.name} - #{dev.inspect}"
+        if d.check_me(dev)
+          log_msg :Listener, "Deleting device #{d.inspect} - #{dev.inspect}"
           d.down
           @present.delete d
         end
@@ -77,7 +78,7 @@ module Network
     end
 
     def start_drb
-      DRb.start_service 'druby://:9000', Network::Device
+      DRb.start_service 'druby://localhost:9000', Network::Device
       log_msg :Device, "Server running at #{DRb.uri}"
       trap('INT') { DRb.stop_service }
     end

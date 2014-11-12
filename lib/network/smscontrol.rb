@@ -9,7 +9,7 @@ module Network
 
     UNKNOWN = -1
 
-    @connection = nil
+    @connection = @operator = nil
 
     def initialize
       @state_now = Device::DISCONNECTED

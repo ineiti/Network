@@ -8,8 +8,7 @@ include HelperClasses::DPuts
 def setup
   DRb.start_service
 
-  handler = DRbObject.new_with_uri('druby://localhost:9000')
-#puts handler.add( {} )
+  $handler = DRbObject.new_with_uri('druby://localhost:9000')
   Network::Device.list
   @device = Network::Device.search_dev({uevent: {driver: 'option'}}).first
   exit unless @device
@@ -17,9 +16,15 @@ end
 
 def main
   setup
+  test_handler
   #test_check_same_2
   #test_send_delete_sms
-  test_list_devices
+  #test_list_devices
+end
+
+def test_handler
+  puts $handler.add({})
+  sleep 20
 end
 
 def test_list_devices
@@ -28,9 +33,9 @@ end
 def test_send_delete_sms
   @device.sms_scan
   sleep 2
-  @device.sms_list.each{|sms|
+  @device.sms_list.each { |sms|
     dp sms.inspect
-    @device.sms_delete( sms._Index )
+    @device.sms_delete(sms._Index)
   }
   sleep 2
   @device.sms_scan
