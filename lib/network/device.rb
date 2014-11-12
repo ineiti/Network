@@ -1,9 +1,12 @@
+require 'observer'
+
 module Network
   extend HelperClasses::DPuts
   module Device
     attr_accessor :devices, :present
     extend HelperClasses::DPuts
     extend self
+    extend Observable
 
     ERROR=-1
     CONNECTED=1
@@ -15,13 +18,30 @@ module Network
     @devices = {}
     @present = []
 
-    def env_to_dev(env)
-      ddputs(2){"udev-change: #{env}"}
-      {path: ".*/#{env.sub(/^.*\//, '')}"}
+    def env_to_dev(subs, env, catchpath = false)
+      sysenv = "/sys/#{env}"
+      path = catchpath ? ".*/#{env.sub(/^.*\//, '')}" : sysenv
+      dputs(3) { "udev-change: #{subs.inspect}, #{sysenv} - path = #{path}" }
+      case subs
+        when /usb/
+          ret = {bus: 'usb', path: path}
+          catchpath or ret.merge!({uevent: file_to_hash("#{sysenv}/uevent"),
+                                   dirs: get_dirs(sysenv)})
+        when /net/
+          ret = {class: 'net', path: path}
+          catchpath or ret.merge!({dirs: get_dirs(sysenv)}.
+                                      merge(files_to_hash(sysenv, %w(uevent address))))
+      end
+      ret
     end
 
-    def add_udev(env)
-      add env_to_dev(env)
+    def add_udev(subs, env)
+      begin
+        add env_to_dev(subs, env)
+      rescue Exception => e
+        dp e.to_s
+        dp e.backtrace
+      end
     end
 
     def add(dev)
@@ -31,12 +51,20 @@ module Network
         if d.check_new(dev)
           log_msg :Listener, "Adding device #{name} - #{dev.inspect}"
           @present.push d.new(dev)
+          changed
+          notify_observers(:add, @present.last)
+          log_msg :Listener, 'notified observers'
         end
       }
     end
 
-    def del_udev(env)
-      del env_to_dev(env)
+    def del_udev(subs, env)
+      begin
+        del env_to_dev(subs, env, true)
+      rescue Exception => e
+        dp e.to_s
+        dp e.backtrace
+      end
     end
 
     def del(dev)
@@ -44,6 +72,8 @@ module Network
         if d.check_me(dev)
           log_msg :Listener, "Deleting device #{d.inspect} - #{dev.inspect}"
           d.down
+          changed
+          notify_observers(:del, d)
           @present.delete d
         end
       }
@@ -85,15 +115,21 @@ module Network
 
     def scan
       return unless File.exists? '/sys'
-      if true
-        Dir['/sys/bus/usb/devices/*'].each { |usb|
+      Dir['/sys/bus/usb/devices/*'].each { |usb|
+        begin
           add({bus: 'usb', path: usb, uevent: file_to_hash("#{usb}/uevent"),
                dirs: get_dirs(usb)})
-        }
-      end
+        rescue Errno::ENOENT => e
+          log_msg :Devices, "Oups - #{usb} just disappeared"
+        end
+      }
       Dir['/sys/class/net/*'].each { |net|
-        add({class: 'net', path: net, dirs: get_dirs(net)}.
-                merge(files_to_hash(net, %w(uevent address))))
+        begin
+          add({class: 'net', path: net, dirs: get_dirs(net)}.
+                  merge(files_to_hash(net, %w(uevent address))))
+        rescue Errno::ENOENT => e
+          log_msg :Devices, "Oups - #{net} just disappeared"
+        end
       }
     end
 
@@ -117,19 +153,18 @@ module Network
 
 =end
     class Stub
+      include HelperClasses::DPuts
       extend HelperClasses::DPuts
-      attr_reader :dev, :ids
+      attr_reader :dev, :ids, :operator
+      include Observable
 
       @ids = []
       @dev = nil
+      @operator = nil
 
       def initialize(dev)
         @dev = dev
-      end
-
-      def get_operator
-        dputs(3) { 'Returning :Direct' }
-        return :Direct
+        @operator = Operator.search_name(:Direct, self)
       end
 
       def self.inherited(other)
@@ -139,10 +174,21 @@ module Network
       end
 
       def check_me(dev)
+        Stub.check_this(dev, dev.keys.to_sym, @dev)
         Stub.check_this(dev, [:path], @dev)
       end
 
+      def down
+        changed
+        notify_observers(:down)
+      end
+
+      def connection_may_stop
+        log :Device, "Connection could've ended"
+      end
+
       def self.check_this(dev, attributes, dev_self = @dev)
+        dputs(3) { "Checking against device #{dev_self.inspect}" }
         attributes.each { |a|
           att = a.to_sym
           ds = dev_self[att]

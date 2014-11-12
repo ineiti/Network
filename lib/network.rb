@@ -27,11 +27,11 @@ end
 
 
 require 'drb'
-require 'network/captive'
-require 'network/connection'
-require 'network/device'
-require 'network/mail'
 require 'network/operator'
+require 'network/device'
+require 'network/captive'
+#require 'network/connection'
+require 'network/mail'
 require 'network/smscontrol'
 
 module Network

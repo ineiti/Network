@@ -7,7 +7,7 @@ module Network
     attr_accessor :usage_daily, :ips_idle, :mac_list, :ip_list, :restricted,
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
-                  :openvpn_allow_double, :allow_double, :connection
+                  :openvpn_allow_double, :allow_double
 # Iptable-rules:
 # filter:FCAPTIVE - should be called at the end of the filter:FORWARD-table
 #   allows new users and finishes with a BLOCK
@@ -38,7 +38,6 @@ module Network
     @disconnect_list = []
     @allow_double = true
 
-    @connection = nil
     @operator = nil
     @device = nil
 
@@ -220,7 +219,7 @@ module Network
 
     # This can be called from time to time to check on idle people
     def cleanup
-      if @connection.status == Device::DISCONNECTED
+      if @device.connection_status == Device::DISCONNECTED
         if ips_connected.length > 0
           if @operator.type != Operator::CONNECTION_ALWAYS
             log_ "Disconnecting everybody as we're not connected"
@@ -232,7 +231,7 @@ module Network
       end
 
       if ips_connected.length == 0
-        @connection.stop if @operator.connection_type == Operator::CONNECTION_ONDEMAND
+        @device.connection_stop if @operator.connection_type == Operator::CONNECTION_ONDEMAND
       else
         ips_connected.each { |ip|
           packets = packets_count ip
@@ -273,12 +272,11 @@ module Network
       end
     end
 
-    def setup(conn = nil)
+    def setup(dev = nil)
       log_ "Setting up with #{conn.inspect}"
-      if conn
-        @connection = conn
-        @operator = conn.operator
-        @device = conn.device
+      if dev
+        @device = dev
+        @operator = dev.operator
       end
 
       delete_chain :PREROUTING, :CAPTIVE, :nat
@@ -346,7 +344,7 @@ module Network
     end
 
     def user_connect(ip, n, free = false)
-      @connection.start
+      @device.connection_start
       name = n.to_s
 
       if user_connected name
@@ -385,7 +383,7 @@ module Network
       @users_conn.delete name
       ip_forward ip, false
 
-      @users_conn.length == 0 and @connection.may_stop
+      @users_conn.length == 0 and @device.connection_may_stop
     end
 
     def user_cost_now

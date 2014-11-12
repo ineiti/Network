@@ -7,25 +7,42 @@ module Network
     class Serial < Stub
       include HelperClasses::DPuts
       include SerialModem
+      include Observable
 
       @ids = [{bus: 'usb', uevent: {product: '12d1/1506/102'}, dirs: ['ep_02']},
               {bus: 'usb', uevent: {product: '12d1/14ac'}},
-              {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_02']}]
+              {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
 
       def initialize(dev)
         super(dev)
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
+        @operator = nil
+        Thread.new {
+          (1..10).each { |i|
+            if @operator = Operator.search_name(get_operator, self)
+              begin
+                changed
+                notify_observers( :operator )
+              rescue Exception => e
+                dp e.to_s
+                dp e.backtrace
+              end
+              return
+            end
+            sleep i*i
+          }
+        }
       end
 
       def connection_start
-        ddputs(2) { 'Starting connection' }
+        dputs(2) { 'Starting connection' }
         @connection_status = CONNECTING
         Kernel.system('netctl restart ppp')
       end
 
       def connection_stop
-        ddputs(2) { 'Stopping connection' }
+        dputs(2) { 'Stopping connection' }
         @connection_status = DISCONNECTING
         Kernel.system('netctl stop ppp')
       end

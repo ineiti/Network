@@ -4,27 +4,51 @@ require 'erb'
 module Network
   class SMScontrol
     attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
-                  :min_traffic, :connection, :device, :operator
+                  :min_traffic, :device, :operator
     extend HelperClasses::DPuts
 
     UNKNOWN = -1
 
-    @connection = @operator = nil
+    @operator = nil
 
     def initialize
       @state_now = Device::DISCONNECTED
       @state_goal = UNKNOWN
       @send_status = false
+      @send_connected = false
       @state_error = 0
       @phone_main = 99836457
       @state_traffic = 0
       @min_traffic = 100000
       @traffic_goal = 0
       @sms_injected = []
-      @device = Network::Device.search_dev({uevent:{driver: 'option'}}).first
-      return unless @device
-      @connection = Network::Connection.new(@device)
-      @operator = @connection.operator
+
+      @device = nil
+      Network::Device.add_observer(self)
+      update('add', Network::Device.search_dev({uevent: {driver: 'option'}}).first )
+    end
+
+    def update(operation, dev = nil )
+      ddputs(3){"Updating #{operation} with device #{dev}"}
+      case operation
+        when /del/
+          if @device == dev
+            log_msg :SMScontrol, "Lost device #{@device}"
+            @device = @operator = nil
+          end
+        when /add/
+          if !@device && dev
+            @device = dev
+            @operator = @device.operator
+            @device.add_observer(self)
+            log_msg :SMScontrol, "Got new device #{@device}"
+          end
+        when /operator/
+          @operator = @device.operator
+          log_msg :SMScontrol, "Found operator #{@operator}"
+        when /down/
+          log_msg :SMScontrol, "Downing device #{@device}"
+      end
     end
 
     def is_connected
@@ -77,7 +101,7 @@ module Network
     end
 
     def check_connection
-      return unless @connection
+      return unless @operator
 
       @state_traffic = @operator.internet_left
       if @state_traffic >= 0 and @state_goal == UNKNOWN
@@ -87,16 +111,16 @@ module Network
 
       old = @state_now
       if @state_now == Device::CONNECTED &&
-          @state_traffic <= @min_traffic
+          ( @state_traffic >= 0 && @state_traffic <= @min_traffic )
         @state_goal = Device::DISCONNECTED
       end
 
-      @state_now = @connection.status
+      @state_now = @device.connection_status
       if @state_goal != @state_now
         if @state_now == Device::ERROR_CONNECTION
           @state_error += 1
           log_msg :SMScontrol, 'Connection Error - stopping'
-          @connection.stop
+          @device.connection_stop
           sleep 2
           #if @state_error > 5
           #  @state_goal = Connection::DISCONNECTED
@@ -104,12 +128,12 @@ module Network
         end
         if @state_goal == Device::DISCONNECTED
           log_msg :SMScontrol, 'Goal is ::Disconnected'
-          @connection.stop
+          @device.connection_stop
         elsif @state_goal == Device::CONNECTED
           if @state_traffic < @min_traffic
             @state_goal = Device::DISCONNECTED
           else
-            @connection.start
+            @device.connection_start
           end
         end
       else
@@ -118,17 +142,21 @@ module Network
       if old != @state_now
         begin
           if @state_now == Device::CONNECTED
+            if @send_connected
+              @send_connected = false
+              @send_status = true
+            end
             Network::Actions.connection_up
           elsif old == Device::CONNECTED
             Network::Actions.connection_down
           end
-        rescue NotSupported => e
+        rescue NameError => e
         end
       end
     end
 
     def check_sms
-      return unless @connection
+      return unless @operator
       if @send_status
         @device.sms_send(@phone_main, interpret_commands('cmd:status').join('::'))
         @send_status = false
@@ -161,20 +189,23 @@ module Network
                   @state_goal = Device::DISCONNECTED
                   log_msg :SMS, 'Getting internet-credit'
                   @device.sms_send(100, 'internet')
+                  sleep 5
                 when /350.*cfa/i
                   @state_goal = Device::DISCONNECTED
                   log_msg :SMS, 'Getting internet-credit'
                   @device.sms_send(200, 'internet')
+                  sleep 5
                 when /850.*cfa/i
                   @state_goal = Device::DISCONNECTED
                   log_msg :SMS, 'Getting internet-credit'
                   @device.sms_send(1111, 'internet')
+                  sleep 5
                 when /souscription reussie/i
                   log_msg :SMS, 'Asking credit'
-                  @state_traffic = @operator.internet_left( true )
+                  @state_traffic = @operator.internet_left(true)
                   @state_goal = UNKNOWN
-                  #make_connection
-                  @send_status = true
+                  make_connection
+                  @send_status = @send_connected = true
               end
           end
         end

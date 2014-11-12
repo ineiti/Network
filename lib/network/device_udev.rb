@@ -7,7 +7,7 @@ Kernel.system("echo #{ARGV.inspect} >> /tmp/dudev")
 
 case ARGV.first
   when /add/
-    dev.add_udev(ARGV.last)
+    dev.add_udev(*ARGV[1..2])
   when /del/
-    dev.del_udev(ARGV.last)
+    dev.del_udev(*ARGV[1..2])
 end

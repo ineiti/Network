@@ -5,12 +5,13 @@ require 'thread'
 module Network
   extend HelperClasses::DPuts
 
-  class Connection
+  class Connection_why_is_that_cool
     attr_accessor :device, :operator
     extend HelperClasses::DPuts
 
     @device = nil
     @operator = nil
+    @@connections = []
 
     def initialize(dev, op = nil)
       @device = dev
@@ -42,6 +43,12 @@ module Network
 
     def may_stop
       @device.connection_may_stop
+    end
+
+    def self.search_by_device(dev)
+      @@connections.find{|c|
+        c.device.check_me( dev )
+      }
     end
   end
 end

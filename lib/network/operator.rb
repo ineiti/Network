@@ -18,8 +18,8 @@ module Network
     @allow_free = false
 
     def search_name(name, dev)
-      ddputs(3){"Looking for #{name}"}
-      op = @operators.select{|k,v|
+      ddputs(3) { "Looking for #{name}" }
+      op = @operators.select { |k, v|
         name.to_s.downcase =~ /#{k.downcase}/
       }
       op.size > 0 ? op.first.last.new(dev) : nil
@@ -59,6 +59,7 @@ module Network
 
       def initialize(dev)
         @device = dev
+        dev.add_observer(self)
         @connection_type = CONNECTION_ALWAYS
       end
 
@@ -73,6 +74,12 @@ module Network
 
       def name
         self.class.name
+      end
+
+      def update(operation, dev = nil)
+        if operation =~ /del/
+          log_msg :Operator, "Killing #{self}"
+        end
       end
 
       def self.inherited(other)
