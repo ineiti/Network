@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'drb/drb'
 
-dev = DRbObject.new_with_uri 'druby://localhost:9000'
+exit unless dev = DRbObject.new_with_uri 'druby://localhost:9000'
 
 Kernel.system("echo #{ARGV.inspect} >> /tmp/dudev")
 
