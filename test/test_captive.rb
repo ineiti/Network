@@ -10,6 +10,16 @@ sleep 3
 Captive.user_connect '192.168.10.146', 'ineiti'
 puts Captive.users_connected.inspect
 sleep 5
+Captive.user_disconnect '192.168.10.146', 'ineiti'
+puts Captive.users_connected.inspect
+sleep 5
+Captive.user_connect '192.168.10.146', 'ineiti'
+puts Captive.users_connected.inspect
+sleep 5
+
+exit
+
+
 Captive.cleanup
 sleep 1
 15.times{Captive.cleanup}

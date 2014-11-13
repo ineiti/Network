@@ -46,7 +46,7 @@ module Network
     @usage_daily = 0
 
     def log(msg)
-      dputs(2) { msg }
+      ddputs(2) { msg }
     end
 
     def log_(msg)
@@ -54,7 +54,7 @@ module Network
     end
 
     def iptables(*cmds)
-      dputs(3) { cmds.join(' ') }
+      ddputs(3) { cmds.join(' ') }
       System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
     end
 
@@ -68,13 +68,21 @@ module Network
     end
 
     def ip_drop(ip, apply)
-      op = apply ? '-D' : '-I'
-      iptables "#{op} FCAPTIVE -s #{ip} -j DROP"
-      iptables "#{op} FCAPTIVE -d #{ip} -j DROP"
+      if apply or iptables('-L FCAPTIVE -nv') =~ /#{ip}.*DROP/
+        op = apply ? '-I' : '-D'
+        iptables "#{op} FCAPTIVE -s #{ip} -j DROP"
+        iptables "#{op} FCAPTIVE -d #{ip} -j DROP"
+      else
+        log "Unapplying while #{ip} is not yet there"
+      end
     end
 
     def ip_forward(ip, allow)
-      return unless ip_check(ip) != allow
+      if allow
+        return if @ip_list.index(ip)
+      else
+        return unless @ip_list.index(ip)
+      end
       @ip_list.push ip
 
       op = allow ? '-I' : '-D'
@@ -82,6 +90,7 @@ module Network
       iptables "#{op} FCAPTIVE -d #{ip} -j ACCEPT"
       ipnat "#{op} CAPTIVE -s #{ip} -j INTERNET"
 
+      dp "Dropping with #{allow.inspect}"
       ip_drop(ip, !allow)
     end
 
@@ -213,8 +222,11 @@ module Network
     end
 
     def packets_count(ip)
-      iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}/ }.
-          split.first.to_i
+      if packets = iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}/ }
+        packets.split.first.to_i
+      else
+        0
+      end
     end
 
     # This can be called from time to time to check on idle people
@@ -273,7 +285,7 @@ module Network
     end
 
     def setup(dev = nil)
-      log_ "Setting up with #{conn.inspect}"
+      log_ "Setting up with #{dev.inspect}"
       if dev
         @device = dev
         @operator = dev.operator
@@ -344,7 +356,7 @@ module Network
     end
 
     def user_connect(ip, n, free = false)
-      @device.connection_start
+      @device and @device.connection_start
       name = n.to_s
 
       if user_connected name

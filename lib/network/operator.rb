@@ -18,7 +18,7 @@ module Network
     @allow_free = false
 
     def search_name(name, dev)
-      ddputs(3) { "Looking for #{name}" }
+      dputs(3) { "Looking for #{name}" }
       op = @operators.select { |k, v|
         name.to_s.downcase =~ /#{k.downcase}/
       }

@@ -187,6 +187,17 @@ module Network
         log :Device, "Connection could've ended"
       end
 
+      def connection_status_old
+        case connection_status
+          when Device::CONNECTED
+            4
+          when Device::CONNECTING
+            3
+          else
+            0
+        end
+      end
+
       def self.check_this(dev, attributes, dev_self = @dev)
         dputs(3) { "Checking against device #{dev_self.inspect}" }
         attributes.each { |a|
