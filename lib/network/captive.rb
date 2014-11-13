@@ -46,7 +46,7 @@ module Network
     @usage_daily = 0
 
     def log(msg)
-      ddputs(2) { msg }
+      dputs(3) { msg }
     end
 
     def log_(msg)
@@ -54,7 +54,7 @@ module Network
     end
 
     def iptables(*cmds)
-      ddputs(3) { cmds.join(' ') }
+      log cmds.join(' ')
       System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
     end
 
@@ -68,7 +68,8 @@ module Network
     end
 
     def ip_drop(ip, apply)
-      if apply or iptables('-L FCAPTIVE -nv') =~ /#{ip}.*DROP/
+      log "Drop: Applying #{apply.inspect} for #{ip}"
+      if apply or iptables('-L FCAPTIVE -nv') =~ /DROP.*#{ip}/
         op = apply ? '-I' : '-D'
         iptables "#{op} FCAPTIVE -s #{ip} -j DROP"
         iptables "#{op} FCAPTIVE -d #{ip} -j DROP"
@@ -77,20 +78,33 @@ module Network
       end
     end
 
+    def ip_accept(ip, apply)
+      log "Accept: Applying #{apply.inspect} for #{ip}"
+      if apply or iptables('-L FCAPTIVE -nv') =~ /ACCEPT.*#{ip}/
+        op = apply ? '-I' : '-D'
+        iptables "#{op} FCAPTIVE -s #{ip} -j ACCEPT"
+        iptables "#{op} FCAPTIVE -d #{ip} -j ACCEPT"
+      else
+        log "Unapplying while #{ip} is not yet there"
+      end
+    end
+
     def ip_forward(ip, allow)
+      log "#{ip}:#{allow.inspect} - #{@ip_list.inspect}"
       if allow
         return if @ip_list.index(ip)
+        @ip_list.push ip
       else
         return unless @ip_list.index(ip)
+        @ip_list.delete ip
       end
-      @ip_list.push ip
 
       op = allow ? '-I' : '-D'
       iptables "#{op} FCAPTIVE -s #{ip} -j ACCEPT"
       iptables "#{op} FCAPTIVE -d #{ip} -j ACCEPT"
       ipnat "#{op} CAPTIVE -s #{ip} -j INTERNET"
 
-      dp "Dropping with #{allow.inspect}"
+      log "Dropping with #{allow.inspect}"
       ip_drop(ip, !allow)
     end
 
@@ -133,13 +147,13 @@ module Network
     def var_array(name, splitchar = ',')
       val = self.send("#{name}") or return []
       self.send("#{name}=", val.split(splitchar))
-      dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
     def var_string_nil(name)
       val = self.send("#{name}")
       self.send("#{name}=", (val && val.length > 0) ? val : nil)
-      dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
     def var_bool(name)
@@ -150,7 +164,7 @@ module Network
                false
              end
       self.send("#{name}=", bool)
-      dputs(3) { "#{name} was #{val} and is #{self.send("#{name}").inspect}" }
+      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
     def clean_config
@@ -264,7 +278,7 @@ module Network
         }
       end
 
-      dputs(2) { 'Clearing counters' }
+      log 'Clearing counters'
       iptables '-Z FCAPTIVE'
     end
 
@@ -324,20 +338,22 @@ module Network
 
     # Restriction for a particular center - should be made more general...
     def restr_man(net, block)
-      %w( 10.1.0.0/24 10.1.10.0/21 10.2.10.0/21 ).each { |default|
+      %w( 10.1.0.0/24 10.1.8.0/21 10.2.8.0/21 ).each { |default|
         ip_drop default, block
       }
-      ip_drop net, !block
+      ip_accept net, block
     end
 
     def restriction_set(rest = nil)
       @restricted and restr_man(@restricted, false)
-      @restricted = rest
+      rest and users_disconnect_all
       case rest
         when /info1/
-          restr_man('10.1.11.0/24', true)
+          @restricted = '10.1.11.0/24'
+          restr_man(@restricted, true)
         when /info2/
-          restr_man('10.1.12.0/24', true)
+          @restricted = '10.1.12.0/24'
+          restr_man(@restricted, true)
         else
           @restricted = nil
       end
@@ -388,14 +404,15 @@ module Network
       }
     end
 
-    def user_disconnect(name, ip)
-      log_ "user_disconnect #{name}:#{ip}"
+    def user_disconnect(name, ip = nil)
+      log_ "user_disconnect #{name}:#{ip} - #{@users_conn.inspect}"
 
-      return unless ip = @users_conn[name]
+      ip or ( return unless ip = @users_conn[name] )
+      log_ "really disconnecting #{name} from #{ip}"
       @users_conn.delete name
       ip_forward ip, false
 
-      @users_conn.length == 0 and @device.connection_may_stop
+      @users_conn.length == 0 and @device and @device.connection_may_stop
     end
 
     def user_cost_now
