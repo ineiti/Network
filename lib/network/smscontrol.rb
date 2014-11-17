@@ -4,12 +4,13 @@ require 'erb'
 module Network
   class SMScontrol
     attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
-                  :min_traffic, :device, :operator
+                  :min_traffic, :device, :operator, :autocharge
     extend HelperClasses::DPuts
 
     UNKNOWN = -1
 
     @operator = nil
+    @autocharge = false
 
     def initialize
       @state_now = Device::DISCONNECTED
@@ -25,11 +26,11 @@ module Network
 
       @device = nil
       Network::Device.add_observer(self)
-      update('add', Network::Device.search_dev({uevent: {driver: 'option'}}).first )
+      update('add', Network::Device.search_dev({uevent: {driver: 'option'}}).first)
     end
 
-    def update(operation, dev = nil )
-      ddputs(3){"Updating #{operation} with device #{dev}"}
+    def update(operation, dev = nil)
+      ddputs(3) { "Updating #{operation} with device #{dev}" }
       case operation
         when /del/
           if @device == dev
@@ -111,7 +112,7 @@ module Network
 
       old = @state_now
       if @state_now == Device::CONNECTED &&
-          ( @state_traffic >= 0 && @state_traffic <= @min_traffic )
+          (@state_traffic >= 0 && @state_traffic <= @min_traffic)
         @state_goal = Device::DISCONNECTED
       end
 
@@ -184,28 +185,30 @@ module Network
                   @send_status = true
               end
             when :Tigo
-              case sms._Content
-                when /200.*cfa/i
-                  @state_goal = Device::DISCONNECTED
-                  log_msg :SMS, 'Getting internet-credit'
-                  @device.sms_send(100, 'internet')
-                  sleep 5
-                when /350.*cfa/i
-                  @state_goal = Device::DISCONNECTED
-                  log_msg :SMS, 'Getting internet-credit'
-                  @device.sms_send(200, 'internet')
-                  sleep 5
-                when /850.*cfa/i
-                  @state_goal = Device::DISCONNECTED
-                  log_msg :SMS, 'Getting internet-credit'
-                  @device.sms_send(1111, 'internet')
-                  sleep 5
-                when /souscription reussie/i
-                  log_msg :SMS, 'Asking credit'
-                  @state_traffic = @operator.internet_left(true)
-                  @state_goal = UNKNOWN
-                  make_connection
-                  @send_status = @send_connected = true
+              if @autocharge
+                case sms._Content
+                  when /200.*cfa/i
+                    @state_goal = Device::DISCONNECTED
+                    log_msg :SMS, 'Getting internet-credit'
+                    @device.sms_send(100, 'internet')
+                    sleep 5
+                  when /350.*cfa/i
+                    @state_goal = Device::DISCONNECTED
+                    log_msg :SMS, 'Getting internet-credit'
+                    @device.sms_send(200, 'internet')
+                    sleep 5
+                  when /850.*cfa/i
+                    @state_goal = Device::DISCONNECTED
+                    log_msg :SMS, 'Getting internet-credit'
+                    @device.sms_send(1111, 'internet')
+                    sleep 5
+                  when /souscription reussie/i
+                    log_msg :SMS, 'Asking credit'
+                    @state_traffic = @operator.internet_left(true)
+                    @state_goal = UNKNOWN
+                    make_connection
+                    @send_status = @send_connected = true
+                end
               end
           end
         end

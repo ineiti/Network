@@ -57,6 +57,7 @@ module Network
         if str = @device.ussd_fetch('*128#')
           if left = str.match(/([0-9\.]+\s*.[oObB])/)
             bytes, mult = left[1].split
+            return -1 unless ( bytes && mult )
             (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                 bytes = (bytes.to_f * 10 ** exp).to_i
             dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
