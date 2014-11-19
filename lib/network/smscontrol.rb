@@ -185,7 +185,7 @@ module Network
                   @send_status = true
               end
             when :Tigo
-              if @autocharge
+              if @autocharge && ! ( sms._Content =~ /Tigo Cash/ )
                 case sms._Content
                   when /200.*cfa/i
                     @state_goal = Device::DISCONNECTED
@@ -206,7 +206,6 @@ module Network
                     log_msg :SMS, 'Asking credit'
                     @state_traffic = @operator.internet_left(true)
                     @state_goal = UNKNOWN
-                    make_connection
                     @send_status = @send_connected = true
                 end
               end
