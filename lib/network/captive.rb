@@ -4,6 +4,8 @@ module Network
   module Captive
     extend self
     extend HelperClasses::DPuts
+    extend HelperClasses
+    include HelperClasses
     attr_accessor :usage_daily, :ips_idle, :mac_list, :ip_list, :restricted,
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
