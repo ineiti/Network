@@ -9,7 +9,7 @@ module Network
       include SerialModem
       include Observable
 
-      @ids = [{bus: 'usb', uevent: {product: '12d1/1506/102'}, dirs: ['ep_02']},
+      @ids = [{bus: 'usb', uevent: {product: '12d1.1506.102'}, dirs: ['ep_01']},
               {bus: 'usb', uevent: {product: '12d1/14ac'}},
               {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
 
@@ -76,7 +76,7 @@ module Network
       end
 
       def set_2g
-        set_connection_type('2g')
+        set_connection_type('2go')
       end
 
       def set_3g

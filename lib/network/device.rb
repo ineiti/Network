@@ -199,11 +199,11 @@ module Network
       end
 
       def self.check_this(dev, attributes, dev_self = @dev)
-        dputs(3) { "Checking against device #{dev_self.inspect}" }
+        dputs(3) { "Checking #{dev} against device #{dev_self.inspect}" }
         attributes.each { |a|
           att = a.to_sym
           ds = dev_self[att]
-          d = dev[att]
+          return false unless ( d = dev[att] )
           dputs(3) { "Checking #{att} - #{ds.inspect} - #{d.inspect}" }
           case ds.class.to_s
             when /Array/

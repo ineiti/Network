@@ -185,7 +185,8 @@ module Network
                   @send_status = true
               end
             when :Tigo
-              if @autocharge && ! ( sms._Content =~ /Tigo Cash/ )
+              if @autocharge &&
+                  !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
                 case sms._Content
                   when /200.*cfa/i
                     @state_goal = Device::DISCONNECTED
