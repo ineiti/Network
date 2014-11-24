@@ -1,11 +1,12 @@
-DEBUG_LVL=5
+DEBUG_LVL=2
 
 require 'network'
 
-modem = Network::Modem.present or ( puts "no modem"; exit )
+exit unless device = Network::Device.search_dev({uevent: {driver: 'option'}}).first
+operator = device.operator
 
-p list = modem.sms_list
-p modem.connection_status
+p list = device.sms_list
+p device.connection_status
 exit
 
 modem.connection_start

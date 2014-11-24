@@ -21,11 +21,11 @@ module Network
       def new_sms(list, id)
         if list[id][1] == '"CPTInternet"'
           if str = list[id][4]
-            if left = str.match(/([0-9\.]+\s*.[oObB])/)
-              bytes, mult = left[1].split
+            if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
+              bytes, mult = left[2].split
               (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                   bytes = (bytes.to_f * 10 ** exp).to_i
-              ddputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
+              dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[2]}::#{bytes}" }
               @internet_left = bytes.to_i
             end
           end
@@ -76,11 +76,12 @@ module Network
         @device.ussd_send("*242*#{cr._code}#")
       end
 
-      def internet_add_cost(cost)
-        dputs(2){"searching for costs #{cost}"}
+      def internet_add_cost(c)
+        cost = c.to_i
+        dputs(2) { "searching for costs #{cost}" }
         internet_add internet_cost.reverse.find { |c, v|
           cost >= c
-        }._volume
+        }.last
       end
 
       def internet_cost

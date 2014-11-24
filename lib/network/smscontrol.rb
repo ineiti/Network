@@ -18,7 +18,7 @@ module Network
       @send_status = false
       @send_connected = false
       @state_error = 0
-      @phone_main = 99836457
+      @phone_main = 62154352
       @state_traffic = 0
       @min_traffic = 100000
       @traffic_goal = 0
@@ -176,13 +176,19 @@ module Network
           end
         else
           @state_traffic = @operator.internet_left
+          dp @operator.name
           case @operator.name.to_sym
             when :Airtel
               case sms._Content
-                when /valeur transfere ([0-9]*) CFA/i
+                when /valeur transferee ([0-9]*) CFA/i
+                  cfas = $1
+                  log_msg :SMScontrol, "Got #{cfas} CFAs"
+                  @operator.internet_add_cost( cfas )
+                  @send_status = true
+                when /votre abonnement internet/
                   make_connection
                   log_msg :SMScontrol, 'Airtel - make connection'
-                  @send_status = true
+                  @send_status = @send_connected = true
               end
             when :Tigo
               if @autocharge &&
