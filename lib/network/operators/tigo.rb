@@ -8,9 +8,9 @@ module Network
           {cost: 500, volume: 5_000_000, code: 500},
           {cost: 800, volume: 30_000_000, code: 1111},
           {cost: 2_500, volume: 100_000_000, code: 2424},
-          {cost: 14_000, volume: 1_000_000_000, code: 7777},
-          {cost: 50_000, volume: 5_000_000_000, code: 3030},
-          {cost: 50_000, volume: 4_000_000_000, code: 2030}
+          {cost: 20_000, volume: 2_000_000_000, code: 7777},
+          {cost: 50_000, volume: 10_000_000_000, code: 3030},
+          {cost: 30_000, volume: 5_000_000_000, code: 2030}
       ]
 
       def ussd_send(str)

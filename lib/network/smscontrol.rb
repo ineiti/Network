@@ -179,7 +179,7 @@ module Network
           case @operator.name.to_sym
             when :Airtel
               case sms._Content
-                when /votre.*solde/i
+                when /valeur transfere ([0-9]*) CFA/i
                   make_connection
                   log_msg :SMScontrol, 'Airtel - make connection'
                   @send_status = true

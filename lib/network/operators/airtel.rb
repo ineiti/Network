@@ -34,17 +34,13 @@ module Network
       end
 
       def ussd_send(str)
-        begin
-          @device.ussd_send(str)
-        rescue 'USSDinprogress' => e
-          return nil
-        end
+        @device.ussd_send(str)
       end
 
       def credit_left(force = false)
         if (force || !@last_credit) ||
-            (Time.now - @last_credit >= 60 &&
-                @device.status == Connection::CONNECTED)
+            (Time.now - @last_credit >= 300 &&
+                @device.status == Device::CONNECTED)
           ussd_send('*137#')
           @last_credit = Time.now
         end
@@ -65,8 +61,8 @@ module Network
 
       def internet_left(force = false)
         if (force || !@last_traffic) ||
-            (Time.now - @last_traffic >= 60 &&
-                @device.status == Connection::CONNECTED)
+            (Time.now - @last_traffic >= 300 &&
+                @device.connection_status == Device::CONNECTED)
           ussd_send('*342#')
           ussd_send('4')
           @last_traffic = Time.now
@@ -78,6 +74,13 @@ module Network
         cr = @@credit.find { |c| c._volume == volume } or return
         dputs(2) { "Adding #{cr.inspect} to internet" }
         @device.ussd_send("*242*#{cr._code}#")
+      end
+
+      def internet_add_cost(cost)
+        dputs(2){"searching for costs #{cost}"}
+        internet_add internet_cost.reverse.find { |c, v|
+          cost >= c
+        }._volume
       end
 
       def internet_cost
