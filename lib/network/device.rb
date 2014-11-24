@@ -45,6 +45,7 @@ module Network
     end
 
     def add(dev)
+      dputs_func
       dputs(3) { "Checking whether we find #{dev}" }
       @devices.each { |name, d|
         dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
