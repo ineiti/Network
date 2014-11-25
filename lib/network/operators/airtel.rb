@@ -15,7 +15,9 @@ module Network
       def initialize(device)
         super(device)
         @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
+        @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
         @internet_left = -1
+        @credit_left = -1
       end
 
       def new_sms(list, id)
@@ -25,11 +27,31 @@ module Network
               bytes, mult = left[2].split
               (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                   bytes = (bytes.to_f * 10 ** exp).to_i
-              dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[2]}::#{bytes}" }
+              dputs(2) { "Got internet: #{bytes} :: #{str}" }
               @internet_left = bytes.to_i
+            elsif str =~ /Vous n avez aucun abonnement/
+              dputs(2) { "Got internet-none: 0 :: #{str}" }
+              @internet_left = 0
             end
           end
-          @device.serial_sms_to_delete.push id
+          sleep 5
+          #@device.serial_sms_to_delete.push id
+          @device.sms_delete id
+        end
+      end
+
+      def new_ussd(code, str)
+        dputs(2) { "#{code} - #{str.inspect}" }
+        if code == '*137#'
+          if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
+            @credit_left = left[1].to_i
+            dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
+          end
+        else
+          case str
+            when /epuise votre forfait Internet/
+              @internet_left = 0
+          end
         end
       end
 
@@ -44,11 +66,7 @@ module Network
           ussd_send('*137#')
           @last_credit = Time.now
         end
-        if str = @device.ussd_fetch('*137#')
-          if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
-            return left[1]
-          end
-        end
+        return @credit_left
       end
 
       def credit_add(code)
@@ -63,11 +81,14 @@ module Network
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic >= 300 &&
                 @device.connection_status == Device::CONNECTED)
-          ussd_send('*342#')
-          ussd_send('4')
+          ussd_send %w( *342# 4 )
           @last_traffic = Time.now
         end
         @internet_left
+      end
+
+      def internet_left=(i)
+        @internet_left = i
       end
 
       def internet_add(volume)
@@ -78,16 +99,24 @@ module Network
 
       def internet_add_cost(c)
         cost = c.to_i
-        dputs(2) { "searching for costs #{cost}" }
-        internet_add internet_cost.reverse.find { |c, v|
+        dputs(3) { "searching for costs #{cost}" }
+        costs = internet_cost.reverse.find { |c, v|
           cost >= c
-        }.last
+        } and internet_add(costs.last)
       end
 
       def internet_cost
         @@credit.collect { |c|
           [c._cost, c._volume]
         }
+      end
+
+      def internet_cost_smallest
+        dp internet_cost.sort.first.first
+      end
+
+      def has_promo
+        true
       end
 
       def name

@@ -4,7 +4,7 @@ require 'erb'
 module Network
   class SMScontrol
     attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
-                  :min_traffic, :device, :operator, :autocharge
+                  :min_traffic, :device, :operator, :autocharge, :phone_main
     extend HelperClasses::DPuts
 
     UNKNOWN = -1
@@ -18,7 +18,8 @@ module Network
       @send_status = false
       @send_connected = false
       @state_error = 0
-      @phone_main = 62154352
+      @phone_main = Operator.phone_main.nonempty || 62154352
+      dp @phone_main.to_s
       @state_traffic = 0
       @min_traffic = 100000
       @traffic_goal = 0
@@ -30,7 +31,7 @@ module Network
     end
 
     def update(operation, dev = nil)
-      ddputs(3) { "Updating #{operation} with device #{dev}" }
+      dputs(3) { "Updating #{operation} with device #{dev}" }
       case operation
         when /del/
           if @device == dev
@@ -97,7 +98,9 @@ module Network
     end
 
     def make_connection
+      @state_traffic = @operator.internet_left(true)
       @state_goal = Device::CONNECTED
+      @send_status = @send_connected = true
       @state_error = 0
     end
 
@@ -106,8 +109,20 @@ module Network
 
       @state_traffic = @operator.internet_left
       if @state_traffic >= 0 and @state_goal == UNKNOWN
-        @state_goal = @state_traffic > @min_traffic ?
-            Device::CONNECTED : Device::DISCONNECTED
+        @state_goal = if @state_traffic > @min_traffic
+                        Device::CONNECTED
+                      else
+                        @state_credit = @operator.credit_left
+                        if @state_credit == 0
+                          Device::DISCONNECTED
+                        else
+                          if @state_credit > 0 &&
+                              @state_credit > @operator.internet_cost_smallest
+                            inject_sms("valeur transferee #{@state_credit} CFA")
+                          end
+                          UNKNOWN
+                        end
+                      end
       end
 
       old = @state_now
@@ -176,19 +191,18 @@ module Network
           end
         else
           @state_traffic = @operator.internet_left
-          dp @operator.name
           case @operator.name.to_sym
             when :Airtel
               case sms._Content
                 when /valeur transferee ([0-9]*) CFA/i
                   cfas = $1
                   log_msg :SMScontrol, "Got #{cfas} CFAs"
-                  @operator.internet_add_cost( cfas )
+                  @operator.internet_add_cost(cfas)
                   @send_status = true
-                when /votre abonnement internet/
+                when /votre abonnement internet/,
+                    /Vous avez achete le forfait/
                   make_connection
                   log_msg :SMScontrol, 'Airtel - make connection'
-                  @send_status = @send_connected = true
               end
             when :Tigo
               if @autocharge &&
@@ -211,9 +225,7 @@ module Network
                     sleep 5
                   when /souscription reussie/i
                     log_msg :SMS, 'Asking credit'
-                    @state_traffic = @operator.internet_left(true)
-                    @state_goal = UNKNOWN
-                    @send_status = @send_connected = true
+                    make_connection
                 end
               end
           end

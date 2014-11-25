@@ -3,6 +3,8 @@ require 'observer'
 module Network
   extend HelperClasses::DPuts
   module Device
+    DEBUG_LVL = 3
+
     attr_accessor :devices, :present
     extend HelperClasses::DPuts
     extend self
@@ -45,15 +47,16 @@ module Network
     end
 
     def add(dev)
+      #dputs_func
       dputs(3) { "Checking whether we find #{dev}" }
       @devices.each { |name, d|
         dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
         if d.check_new(dev)
-          log_msg :Listener, "Adding device #{name} - #{dev.inspect}"
+          dputs(2) { "Adding device #{name} - #{dev.inspect}" }
           @present.push d.new(dev)
           changed
           notify_observers(:add, @present.last)
-          log_msg :Listener, 'notified observers'
+          dputs(3) { 'notified observers' }
         end
       }
     end
@@ -203,7 +206,7 @@ module Network
         attributes.each { |a|
           att = a.to_sym
           ds = dev_self[att]
-          return false unless ( d = dev[att] )
+          return false unless (d = dev[att])
           dputs(3) { "Checking #{att} - #{ds.inspect} - #{d.inspect}" }
           case ds.class.to_s
             when /Array/

@@ -6,6 +6,7 @@ module Network
   module Device
     class Serial < Stub
       include HelperClasses::DPuts
+      include HelperClasses::System
       include SerialModem
       include Observable
 
@@ -19,18 +20,21 @@ module Network
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
         Thread.new {
-          (1..10).each { |i|
-            if @operator = Operator.search_name(get_operator, self)
-              begin
-                changed
-                notify_observers( :operator )
-              rescue Exception => e
-                dp e.to_s
-                dp e.backtrace
+          rescue_all {
+            (1..10).each { |i|
+              if @operator = Operator.search_name(get_operator, self)
+                begin
+                  log_msg :Serial, "Got new operator #{@operator}"
+                  changed
+                  notify_observers(:operator)
+                rescue Exception => e
+                  dp e.to_s
+                  dp e.backtrace
+                end
+                break
               end
-              return
-            end
-            sleep i*i
+              sleep i*i
+            }
           }
         }
       end

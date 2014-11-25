@@ -1,4 +1,4 @@
-DEBUG_LVL=3
+DEBUG_LVL=2
 
 require 'network'
 require 'helperclasses'
@@ -6,17 +6,33 @@ include HelperClasses::DPuts
 
 def setup
   dp Network::Operator.list
-  return unless ($dev = Network::Device.search_dev({uevent: {driver: 'option'}})).length > 0
+  exit unless ($dev = Network::Device.search_dev({uevent: {driver: 'option'}})).length > 0
   dp $dev.inspect
-  return unless $con = Network::Connection.new($dev.first)
   $dev = $dev.first
-  $op = $con.operator
+  while ! $dev.operator
+    dp 'Waiting for operator'
+    sleep 1
+  end
+  exit unless ($op = $dev.operator)
+  dp $op
 end
 
 def main
   setup
   #test_tigo_callback
-  test_send_credit
+  #test_send_credit
+  test_airtel_internet_left
+end
+
+def test_airtel_internet_left
+  dp $op
+  $op.internet_left
+  sleep 1
+#  $op.credit_left
+  while sleep 10
+    #$dev.sms_scan
+    dp $dev.sms_list
+  end
 end
 
 def test_tigo_callback

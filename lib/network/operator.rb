@@ -1,8 +1,12 @@
+require 'helperclasses/system.rb'
+
 module Network
   module Operator
     attr_accessor :operators,
-                  :cost_base, :cost_shared, :allow_free
+                  :cost_base, :cost_shared, :allow_free, :phone_main
+
     extend HelperClasses::DPuts
+    include HelperClasses
     extend self
     MISSING = -1
     CONNECTED = 1
@@ -16,13 +20,17 @@ module Network
     @cost_base = 10
     @cost_shared = 10
     @allow_free = false
+    @phone_main = nil
 
     def search_name(name, dev)
       dputs(3) { "Looking for #{name}" }
       op = @operators.select { |k, v|
+        dputs(3) { "Searching #{name} in #{k}" }
         name.to_s.downcase =~ /#{k.downcase}/
       }
-      op.size > 0 ? op.first.last.new(dev) : nil
+      ret = op.size > 0 ? op.first.last.new(dev) : nil
+      dputs(3) { "And found #{ret.inspect} for #{op.inspect}" }
+      ret
     end
 
     def load

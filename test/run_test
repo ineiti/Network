@@ -1,3 +1,4 @@
 #!/bin/bash
 ruby -I../../HilinkModem/lib -I../../SerialModem/lib -I../../HelperClasses/lib -I../lib \
--I../../QooxView/libs/activesupport-3.1.1/lib -I../../QooxView/libs/i18n-0.6.0/lib $1
+-I../../QooxView/libs/activesupport-3.1.1/lib -I../../QooxView/libs/i18n-0.6.0/lib \
+-I../../HelperClasses/lib $1

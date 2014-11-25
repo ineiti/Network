@@ -146,9 +146,10 @@ module Network
       end
     end
 
-    def var_array(name, splitchar = ',')
-      val = self.send("#{name}") or return []
-      self.send("#{name}=", val.split(splitchar))
+    def var_array_nil(name, splitchar = ',')
+      val = self.send("#{name}") or ''
+      val = (val.length > 0 ? val.split(splitchar) : nil)
+      self.send("#{name}=", val)
       log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
@@ -174,7 +175,7 @@ module Network
         var_string_nil(var)
       }
       %w( allow_dst internal_ips allow_src_direct allow_src_proxy ).each { |var|
-        var_array(var)
+        var_array_nil(var)
       }
       %w( openvpn_allow_double ).each { |var|
         var_bool(var)
@@ -188,15 +189,18 @@ module Network
 
       @allow_dhcp ||= %w( 255.255.255.255 )
       @internal_ips ||=
-          System.run_str ('ip addr | grep "inet " | '+
-              'sed -e "s/.*inet \([^\/ ]*\).*/\1/" | grep -v 127.0.0.1)').split
+          System.run_str('ip addr | grep "inet " | ' +
+                             'sed -e "s/.*inet \([^\/ ]*\).*/\1/" | grep -v 127.0.0.1').split
+      @allow_dst ||= @internal_ips
       log_ "Internal is #{internal_ips}"
+      log_ "Allow_dhcp is #{allow_dhcp} - allow_dst is #{allow_dst}"
       (allow_dhcp + internal_ips + allow_dst).each { |ip|
         log_ "Allowing requests to #{ip} to go through"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
         iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
       }
 
+      @allow_src_direct ||= []
       @allow_src_direct.each { |ip|
         log_ "Allowing requests from #{ip} to go through"
         ipnat "-A NOCAPTIVE -s #{ip} -j ACCEPT"
@@ -219,6 +223,7 @@ module Network
         mac_accept mac
       }
 
+      @allow_src_proxy ||= []
       @allow_src_proxy.each { |ip|
         log_ "Allowing requests from #{ip} to go through Proxy"
         ipnat "-A NOCAPTIVE -s #{ip} -j INTERNET"
@@ -301,7 +306,7 @@ module Network
     end
 
     def setup(dev = nil)
-      log_ "Setting up with #{dev.inspect}"
+      log_ "Setting up with #{dev.class.name} - #{dev.operator}"
       if dev
         @device = dev
         @operator = dev.operator
@@ -409,7 +414,7 @@ module Network
     def user_disconnect(name, ip = nil)
       log_ "user_disconnect #{name}:#{ip} - #{@users_conn.inspect}"
 
-      ip or ( return unless ip = @users_conn[name] )
+      ip or (return unless ip = @users_conn[name])
       log_ "really disconnecting #{name} from #{ip}"
       @users_conn.delete name
       ip_forward ip, false
