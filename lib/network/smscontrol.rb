@@ -3,7 +3,7 @@ require 'erb'
 
 module Network
   class SMScontrol
-    attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
+    attr_accessor :state_now, :state_goal, :state_error, :state_traffic, :state_credit,
                   :min_traffic, :device, :operator, :autocharge, :phone_main
     extend HelperClasses::DPuts
 
@@ -15,11 +15,10 @@ module Network
     def initialize
       @state_now = Device::DISCONNECTED
       @state_goal = UNKNOWN
+      @state_credit = -1
       @send_status = false
       @send_connected = false
       @state_error = 0
-      @phone_main = Operator.phone_main.nonempty || 62154352
-      dp @phone_main.to_s
       @state_traffic = 0
       @min_traffic = 100000
       @traffic_goal = 0
@@ -174,7 +173,8 @@ module Network
     def check_sms
       return unless @operator
       if @send_status
-        @device.sms_send(@phone_main, interpret_commands('cmd:status').join('::'))
+        Operator.phone_main and
+            @device.sms_send(Operator.phone_main, interpret_commands('cmd:status').join('::'))
         @send_status = false
         Kernel.const_defined? :SMSinfo and SMSinfo.send_email
       end
@@ -201,8 +201,10 @@ module Network
                   @send_status = true
                 when /votre abonnement internet/,
                     /Vous avez achete le forfait/
-                  make_connection
-                  log_msg :SMScontrol, 'Airtel - make connection'
+                  if @state_goal != Device::CONNECTED
+                    make_connection
+                    log_msg :SMScontrol, 'Airtel - make connection'
+                  end
               end
             when :Tigo
               if @autocharge &&

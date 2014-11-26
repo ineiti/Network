@@ -147,7 +147,7 @@ module Network
     end
 
     def var_array_nil(name, splitchar = ',')
-      val = self.send("#{name}") or ''
+      val = self.send("#{name}") || ''
       val = (val.length > 0 ? val.split(splitchar) : nil)
       self.send("#{name}=", val)
       log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
@@ -216,7 +216,7 @@ module Network
 
       @ip_list.each { |ip|
         log_ "Accepting IP #{ip}"
-        ip_accept ip
+        ip_accept ip, true
       }
       @mac_list.each { |mac|
         log_ "Accepting mac #{mac}"

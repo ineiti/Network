@@ -36,7 +36,7 @@ module Network
           end
           sleep 5
           #@device.serial_sms_to_delete.push id
-          @device.sms_delete id
+          #@device.sms_delete id
         end
       end
 
