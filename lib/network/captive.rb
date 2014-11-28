@@ -23,7 +23,7 @@ module Network
     @http_proxy = nil
     @allow_dst = []
     @internal_ips = []
-    @captive_dnat = '192.168.3.148'
+    @captive_dnat = ''
     @openvpn_allow_double = false
     @allow_src_direct = []
     @allow_src_proxy = []
@@ -56,7 +56,7 @@ module Network
     end
 
     def iptables(*cmds)
-      log_ cmds.join(' ')
+      log cmds.join(' ')
       System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
     end
 
@@ -209,6 +209,11 @@ module Network
         iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
       }
 
+      if !@captive_dnat &&
+          System.run_str('ip addr | grep "inet .*\.1\/.* brd"') =~ /inet (.*)\/.* brd/
+        @captive_dnat = $1
+        log_ "Found local gateway and defining as captive: #{@captive_dnat}"
+      end
       if @captive_dnat
         log_ "Captive dnatting #{@captive_dnat}"
         ipnat "-I CAPTIVE -j DNAT --to-dest #{@captive_dnat}"
