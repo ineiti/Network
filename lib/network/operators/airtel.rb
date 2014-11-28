@@ -4,12 +4,17 @@ module Network
       attr_accessor :device
 
       @@credit=[
-          {cost: 250, volume: 10_000_000, code: 10},
-          {cost: 1_250, volume: 50_000_000, code: 50},
-          {cost: 2_500, volume: 100_000_000, code: 100},
-          {cost: 12_500, volume: 1_000_000_000, code: 1},
-          {cost: 20_000, volume: 2_000_000_000, code: 2},
-          {cost: 50_000, volume: 5_000_000_000, code: 5}
+          {cost:    200, volume:      5_000_000, code:     15},
+          {cost:    250, volume:     10_000_000, code:     10},
+          {cost:    500, volume:     20_000_000, code:     20},
+          {cost:  1_000, volume:     50_000_000, code:     50},
+          {cost:  1_500, volume:    100_000_000, code:    100},
+          {cost:  2_000, volume:    200_000_000, code:    200},
+          {cost:  5_000, volume:    500_000_000, code:    500},
+          {cost: 10_000, volume:  1_000_000_000, code:  1_000},
+          {cost: 20_000, volume:  2_000_000_000, code:  2_000},
+          {cost: 30_000, volume:  5_000_000_000, code:  5_000},
+          {cost: 50_000, volume: 10_000_000_000, code: 10_000}
       ]
 
       def initialize(device)

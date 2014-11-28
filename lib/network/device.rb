@@ -187,7 +187,7 @@ module Network
       end
 
       def connection_may_stop
-        log :Device, "Connection could've ended"
+        log_msg :Device, "Connection could've ended"
       end
 
       def connection_status_old
