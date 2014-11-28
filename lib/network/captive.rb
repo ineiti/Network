@@ -56,7 +56,7 @@ module Network
     end
 
     def iptables(*cmds)
-      log cmds.join(' ')
+      log_ cmds.join(' ')
       System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
     end
 
