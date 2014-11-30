@@ -268,6 +268,7 @@ module Network
         end
       end
 
+      log "ips_connected is #{ips_connected.inspect}"
       if ips_connected.length == 0
         @device.connection_stop if @operator.connection_type == Operator::CONNECTION_ONDEMAND
       else
