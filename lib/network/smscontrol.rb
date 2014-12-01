@@ -29,6 +29,15 @@ module Network
       update('add', Network::Device.search_dev({uevent: {driver: 'option'}}).first)
     end
 
+    def operator_missing?
+      if @operator
+        true
+      else
+        @state_now = Device::DISCONNECTED
+        false
+      end
+    end
+
     def update(operation, dev = nil)
       dputs(3) { "Updating #{operation} with device #{dev}" }
       case operation
@@ -104,7 +113,7 @@ module Network
     end
 
     def check_connection
-      return unless @operator
+      return if operator_missing?
 
       @state_traffic = @operator.internet_left
       if @state_traffic >= 0 and @state_goal == UNKNOWN
@@ -116,7 +125,7 @@ module Network
                           Device::DISCONNECTED
                         else
                           if @state_credit > 0 &&
-                              @state_credit > @operator.internet_cost_smallest
+                              @state_credit >= @operator.internet_cost_smallest
                             inject_sms("valeur transferee #{@state_credit} CFA")
                           end
                           UNKNOWN
@@ -171,7 +180,7 @@ module Network
     end
 
     def check_sms
-      return unless @operator
+      return if operator_missing?
       if @send_status
         Operator.phone_main and
             @device.sms_send(Operator.phone_main, interpret_commands('cmd:status').join('::'))

@@ -4,16 +4,16 @@ module Network
       attr_accessor :device
 
       @@credit=[
-          {cost:    200, volume:      5_000_000, code:     15},
-          {cost:    250, volume:     10_000_000, code:     10},
-          {cost:    500, volume:     20_000_000, code:     20},
-          {cost:  1_000, volume:     50_000_000, code:     50},
-          {cost:  1_500, volume:    100_000_000, code:    100},
-          {cost:  2_000, volume:    200_000_000, code:    200},
-          {cost:  5_000, volume:    500_000_000, code:    500},
-          {cost: 10_000, volume:  1_000_000_000, code:  1_000},
-          {cost: 20_000, volume:  2_000_000_000, code:  2_000},
-          {cost: 30_000, volume:  5_000_000_000, code:  5_000},
+          {cost: 200, volume: 5_000_000, code: 15},
+          {cost: 250, volume: 10_000_000, code: 10},
+          {cost: 500, volume: 20_000_000, code: 20},
+          {cost: 1_000, volume: 50_000_000, code: 50},
+          {cost: 1_500, volume: 100_000_000, code: 100},
+          {cost: 2_000, volume: 200_000_000, code: 200},
+          {cost: 5_000, volume: 500_000_000, code: 500},
+          {cost: 10_000, volume: 1_000_000_000, code: 1_000},
+          {cost: 20_000, volume: 2_000_000_000, code: 2_000},
+          {cost: 30_000, volume: 5_000_000_000, code: 5_000},
           {cost: 50_000, volume: 10_000_000_000, code: 10_000}
       ]
 
@@ -47,15 +47,20 @@ module Network
 
       def new_ussd(code, str)
         dputs(2) { "#{code} - #{str.inspect}" }
-        if code == '*137#'
-          if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
-            @credit_left = left[1].to_i
-            dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
-          end
+        if str =~ /Apologies, there has been a system error./
+          log_msg :Airtel, "Saw apologies-message for #{code} - retrying"
+          ussd_send code
         else
-          case str
-            when /epuise votre forfait Internet/
-              @internet_left = 0
+          if code == '*137#'
+            if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
+              @credit_left = left[1].to_i
+              dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
+            end
+          else
+            case str
+              when /epuise votre forfait Internet/
+                @internet_left = 0
+            end
           end
         end
       end
@@ -86,7 +91,7 @@ module Network
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic >= 300 &&
                 @device.connection_status == Device::CONNECTED)
-          ussd_send %w( *342# 4 )
+          ussd_send '*242#'
           @last_traffic = Time.now
         end
         @internet_left
