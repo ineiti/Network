@@ -21,7 +21,7 @@ module Network
       @state_error = 0
       @min_traffic = 100000
       @traffic_goal = 0
-      @recharge_hold = false
+      @recharge_hold = true
       @sms_injected = []
 
       @device = nil
