@@ -4,7 +4,8 @@ require 'erb'
 module Network
   class SMScontrol
     attr_accessor :state_now, :state_goal, :state_error, :state_traffic, :state_credit,
-                  :min_traffic, :device, :operator, :autocharge, :phone_main
+                  :min_traffic, :device, :operator, :autocharge, :phone_main,
+                  :recharge_hold
     extend HelperClasses::DPuts
 
     UNKNOWN = -1
@@ -22,6 +23,7 @@ module Network
       @state_traffic = 0
       @min_traffic = 100000
       @traffic_goal = 0
+      @recharge_hold = false
       @sms_injected = []
 
       @device = nil
@@ -179,6 +181,17 @@ module Network
       end
     end
 
+    def do_autocharge?
+      @autocharge && !@recharge_hold
+    end
+
+    def recharge_all(cfas = 0)
+      cfas == 0 and cfas = @state_credit
+      log_msg :SMScontrol, "Recharging for #{cfas}"
+      @operator.internet_add_cost(cfas)
+      @send_status = true
+    end
+
     def check_sms
       return if operator_missing?
       if @send_status
@@ -206,8 +219,9 @@ module Network
                 when /valeur transferee ([0-9]*) CFA/i
                   cfas = $1
                   log_msg :SMScontrol, "Got #{cfas} CFAs"
-                  @operator.internet_add_cost(cfas)
-                  @send_status = true
+                  if do_autocharge?
+                    recharge_all( cfas )
+                  end
                 when /votre abonnement internet/,
                     /Vous avez achete le forfait/
                   if @state_goal != Device::CONNECTED
@@ -216,7 +230,7 @@ module Network
                   end
               end
             when :Tigo
-              if @autocharge &&
+              if do_autocharge? &&
                   !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
                 case sms._Content
                   when /200.*cfa/i
