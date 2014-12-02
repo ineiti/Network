@@ -38,12 +38,9 @@ module Network
     end
 
     def add_udev(subs, env)
-      begin
+      rescue_all {
         add env_to_dev(subs, env)
-      rescue Exception => e
-        dp e.to_s
-        dp e.backtrace
-      end
+      }
     end
 
     def add(dev)
@@ -62,12 +59,9 @@ module Network
     end
 
     def del_udev(subs, env)
-      begin
+      rescue_all{
         del env_to_dev(subs, env, true)
-      rescue Exception => e
-        dp e.to_s
-        dp e.backtrace
-      end
+      }
     end
 
     def del(dev)
@@ -217,7 +211,7 @@ module Network
               return false unless ds =~ /^#{d}$/
           end
         }
-        log_msg :Device, "Found device #{dev.inspect}"
+        log_msg( :Device, "Found device #{dev.inspect} in #{self.class.name}")
         return true
       end
 

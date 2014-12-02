@@ -389,12 +389,17 @@ module Network
       name = n.to_s
 
       if user_connected name
-        log "User #{name} already connected"
-        return unless @allow_double
+        if @users_conn[name] == ip
+          log_ "User #{name} already connected from #{ip}"
+          return
+        else
+          log_ "User #{name} already connected"
+          return unless @allow_double
+        end
       end
 
       same_ip = @users_conn.key ip
-      log "Connecting user #{name} - #{ip}"
+      log_ "Connecting user #{name} - #{ip}"
       @users_conn[name] = ip
 
       same_ip and user_disconnect(same_ip, ip)

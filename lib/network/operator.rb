@@ -23,6 +23,7 @@ module Network
     @phone_main = nil
 
     def search_name(name, dev)
+      #dputs_func
       dputs(3) { "Looking for #{name}" }
       op = @operators.select { |k, v|
         dputs(3) { "Searching #{name} in #{k}" }

@@ -26,6 +26,7 @@ module Network
       end
 
       def new_sms(list, id)
+        treated = false
         if list[id][1] == '"CPTInternet"'
           if str = list[id][4]
             if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
@@ -34,14 +35,18 @@ module Network
                   bytes = (bytes.to_f * 10 ** exp).to_i
               dputs(2) { "Got internet: #{bytes} :: #{str}" }
               @internet_left = bytes.to_i
+              treated = true
             elsif str =~ /Vous n avez aucun abonnement/
               dputs(2) { "Got internet-none: 0 :: #{str}" }
               @internet_left = 0
+              treated = true
             end
           end
+        end
+        if treated
           sleep 5
           #@device.serial_sms_to_delete.push id
-          #@device.sms_delete id
+          @device.sms_delete id
         end
       end
 
@@ -51,16 +56,19 @@ module Network
           log_msg :Airtel, "Saw apologies-message for #{code} - retrying"
           ussd_send code
         else
-          if code == '*137#'
-            if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
-              @credit_left = left[1].to_i
-              dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
-            end
-          else
-            case str
-              when /epuise votre forfait Internet/
-                @internet_left = 0
-            end
+          case code
+            when '*137#'
+              if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
+                @credit_left = left[1].to_i
+                dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
+              end
+            when /^\*136/
+              update_credit_left( true )
+            else
+              case str
+                when /epuise votre forfait Internet/
+                  @internet_left = 0
+              end
           end
         end
       end
@@ -72,7 +80,7 @@ module Network
       def update_credit_left(force = false)
         if (force || !@last_credit) ||
             (Time.now - @last_credit >= 300 &&
-                @device.status == Device::CONNECTED)
+                @device.connection_status == Device::CONNECTED)
           ussd_send('*137#')
           @last_credit = Time.now
         end
@@ -80,7 +88,7 @@ module Network
       end
 
       def credit_add(code)
-        ussd_send("*136*#{code}#") or return nil
+        ussd_send("*136*#{code.gsub(/[^0-9]/, '')}#") or return nil
       end
 
       def credit_send(nbr, credit)
@@ -118,7 +126,7 @@ module Network
       end
 
       def internet_cost_smallest
-        dp internet_cost.sort.first.first
+        internet_cost.sort.first.first
       end
 
       def has_promo

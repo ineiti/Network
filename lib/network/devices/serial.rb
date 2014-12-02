@@ -22,14 +22,12 @@ module Network
         Thread.new {
           rescue_all {
             (1..10).each { |i|
+              dputs(3) { "Searching operator #{i}" }
               if @operator = Operator.search_name(get_operator, self)
-                begin
+                rescue_all do
                   log_msg :Serial, "Got new operator #{@operator}"
                   changed
                   notify_observers(:operator)
-                rescue Exception => e
-                  dp e.to_s
-                  dp e.backtrace
                 end
                 break
               end

@@ -6,11 +6,26 @@ module Network
       def initialize(dev)
         super(dev)
         @operator = nil
-        dev = Device.present.find { |dev|
-          dputs(3) { "Checking dev: #{dev}" }
-          dev.operator
-        } and @operator = dev.operator
-        dputs(2) { "And found #{@operator.inspect}" }
+        @serial = nil
+        if @serial = Device.present.find { |dev|
+          dputs(3) { "Checking dev: #{dev.dev._dirs.inspect}" }
+          dev.dev._dirs.find { |d| d =~ /ttyUSB/ }
+        }
+          @serial.add_observer(self)
+          @operator = @serial.operator
+          dputs(2) { "And found #{@operator.inspect} for #{@serial}" }
+        end
+      end
+
+      def update(operation, dev = nil)
+        if operation =~ /operator/
+          if @serial
+            @operator = @serial.operator
+            log_msg :PPP, "Found new operator: #{@operator}"
+          else
+            log_msg :PPP, 'Got new operator without @serial'
+          end
+        end
       end
 
       def connection_start

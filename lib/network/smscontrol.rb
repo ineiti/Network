@@ -31,10 +31,10 @@ module Network
 
     def operator_missing?
       if @operator
-        true
+        false
       else
         @state_now = Device::DISCONNECTED
-        false
+        true
       end
     end
 
@@ -193,8 +193,10 @@ module Network
 
     def check_sms
       return if operator_missing?
+      @device.sms_scan
+
       if @send_status
-        Operator.phone_main and
+        Operator.phone_main.to_s.length > 0 and
             @device.sms_send(Operator.phone_main, interpret_commands('cmd:status').join('::'))
         @send_status = false
         Kernel.const_defined? :SMSinfo and SMSinfo.send_email
@@ -219,6 +221,8 @@ module Network
                   log_msg :SMScontrol, "Got #{cfas} CFAs"
                   if do_autocharge?
                     recharge_all( cfas )
+                  else
+                    log_msg :SMScontrol, 'Not recharging, waiting for more...'
                   end
                 when /votre abonnement internet/,
                     /Vous avez achete le forfait/
@@ -255,7 +259,6 @@ module Network
         end
         @device.sms_delete(sms._Index)
       }
-      @device.sms_scan
     end
   end
 end
