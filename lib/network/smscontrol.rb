@@ -3,7 +3,7 @@ require 'erb'
 
 module Network
   class SMScontrol
-    attr_accessor :state_now, :state_goal, :state_error, :state_traffic, :state_credit,
+    attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
                   :min_traffic, :device, :operator, :autocharge, :phone_main,
                   :recharge_hold
     extend HelperClasses::DPuts
@@ -16,7 +16,6 @@ module Network
     def initialize
       @state_now = Device::DISCONNECTED
       @state_goal = UNKNOWN
-      @state_credit = -1
       @send_status = false
       @send_connected = false
       @state_error = 0
@@ -116,19 +115,19 @@ module Network
 
     def check_connection
       return if operator_missing?
+      @operator.update_credit_left
 
       @state_traffic = @operator.internet_left
       if @state_traffic >= 0 and @state_goal == UNKNOWN
         @state_goal = if @state_traffic > @min_traffic
                         Device::CONNECTED
                       else
-                        @state_credit = @operator.credit_left
-                        if @state_credit == 0
+                        if @operator.credit_left == 0
                           Device::DISCONNECTED
                         else
-                          if @state_credit > 0 &&
-                              @state_credit >= @operator.internet_cost_smallest
-                            inject_sms("valeur transferee #{@state_credit} CFA")
+                          if @operator.credit_left > 0 &&
+                              @operator.credit_left >= @operator.internet_cost_smallest
+                            inject_sms("valeur transferee #{@operator.credit_left} CFA")
                           end
                           UNKNOWN
                         end
@@ -186,7 +185,7 @@ module Network
     end
 
     def recharge_all(cfas = 0)
-      cfas == 0 and cfas = @state_credit
+      cfas == 0 and cfas = @operator.credit_left
       log_msg :SMScontrol, "Recharging for #{cfas}"
       @operator.internet_add_cost(cfas)
       @send_status = true

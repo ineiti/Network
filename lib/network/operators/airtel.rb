@@ -1,7 +1,7 @@
 module Network
   module Operator
     class Airtel < Stub
-      attr_accessor :device
+      attr_accessor :device, :credit_left, :internet_left
 
       @@credit=[
           {cost: 200, volume: 5_000_000, code: 15},
@@ -69,7 +69,7 @@ module Network
         @device.ussd_send(str)
       end
 
-      def credit_left(force = false)
+      def update_credit_left(force = false)
         if (force || !@last_credit) ||
             (Time.now - @last_credit >= 300 &&
                 @device.status == Device::CONNECTED)
@@ -87,7 +87,7 @@ module Network
         raise 'NotSupported'
       end
 
-      def internet_left(force = false)
+      def update_internet_left(force = false)
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic >= 300 &&
                 @device.connection_status == Device::CONNECTED)
@@ -95,10 +95,6 @@ module Network
           @last_traffic = Time.now
         end
         @internet_left
-      end
-
-      def internet_left=(i)
-        @internet_left = i
       end
 
       def internet_add(volume)
