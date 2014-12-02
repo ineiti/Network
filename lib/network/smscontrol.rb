@@ -3,7 +3,7 @@ require 'erb'
 
 module Network
   class SMScontrol
-    attr_accessor :state_now, :state_goal, :state_error, :state_traffic,
+    attr_accessor :state_now, :state_goal, :state_error,
                   :min_traffic, :device, :operator, :autocharge, :phone_main,
                   :recharge_hold
     extend HelperClasses::DPuts
@@ -19,7 +19,6 @@ module Network
       @send_status = false
       @send_connected = false
       @state_error = 0
-      @state_traffic = 0
       @min_traffic = 100000
       @traffic_goal = 0
       @recharge_hold = false
@@ -67,7 +66,7 @@ module Network
     end
 
     def state_to_s
-      "#{@state_now}-#{@state_goal}-#{@state_error}-#{@state_traffic}"
+      "#{@state_now}-#{@state_goal}-#{@state_error}-#{@operator.internet_left}"
     end
 
     def inject_sms(content, phone = '1234',
@@ -107,7 +106,8 @@ module Network
     end
 
     def make_connection
-      @state_traffic = @operator.internet_left(true)
+      @operator.update_internet_left(true)
+      @operator.update_credit_left(true)
       @state_goal = Device::CONNECTED
       @send_status = @send_connected = true
       @state_error = 0
@@ -116,10 +116,10 @@ module Network
     def check_connection
       return if operator_missing?
       @operator.update_credit_left
+      @operator.update_internet_left
 
-      @state_traffic = @operator.internet_left
-      if @state_traffic >= 0 and @state_goal == UNKNOWN
-        @state_goal = if @state_traffic > @min_traffic
+      if @operator.internet_left >= 0 and @state_goal == UNKNOWN
+        @state_goal = if @operator.internet_left > @min_traffic
                         Device::CONNECTED
                       else
                         if @operator.credit_left == 0
@@ -136,7 +136,7 @@ module Network
 
       old = @state_now
       if @state_now == Device::CONNECTED &&
-          (@state_traffic >= 0 && @state_traffic <= @min_traffic)
+          (@operator.internet_left >= 0 && @operator.internet_left <= @min_traffic)
         @state_goal = Device::DISCONNECTED
       end
 
@@ -155,7 +155,7 @@ module Network
           log_msg :SMScontrol, 'Goal is ::Disconnected'
           @device.connection_stop
         elsif @state_goal == Device::CONNECTED
-          if @state_traffic < @min_traffic
+          if @operator.internet_left < @min_traffic
             @state_goal = Device::DISCONNECTED
           else
             @device.connection_start
@@ -211,7 +211,6 @@ module Network
             @device.sms_send(sms._Phone, ret.join('::'))
           end
         else
-          @state_traffic = @operator.internet_left
           case @operator.name.to_sym
             when :Airtel
               case sms._Content
