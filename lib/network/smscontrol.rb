@@ -21,7 +21,7 @@ module Network
       @state_error = 0
       @min_traffic = 100000
       @traffic_goal = 0
-      @recharge_hold = true
+      @recharge_hold = false
       @sms_injected = []
 
       @device = nil
@@ -51,6 +51,7 @@ module Network
             @device = dev
             @operator = @device.operator
             @device.add_observer(self)
+            @device.set_2g
             log_msg :SMScontrol, "Got new device #{@device}"
           end
         when /operator/
@@ -66,7 +67,8 @@ module Network
     end
 
     def state_to_s
-      "#{@state_now}-#{@state_goal}-#{@state_error}-#{@operator.internet_left}"
+      il = operator_missing? ? -1 : @operator.internet_left
+      "#{@state_now}-#{@state_goal}-#{@state_error}-#{il}"
     end
 
     def inject_sms(content, phone = '1234',
@@ -206,55 +208,57 @@ module Network
       dputs(3) { "SMS are: #{sms.inspect}" }
       sms.each { |sms|
         Kernel.const_defined? :SMSs and SMSs.create(sms)
-        log_msg :SMS, "Working on SMS #{sms.inspect}"
-        if sms._Content =~ /^cmd:/i
-          if (ret = interpret_commands(sms._Content))
-            log_msg :SMS, "Sending to #{sms._Phone} - #{ret.inspect}"
-            @device.sms_send(sms._Phone, ret.join('::'))
-          end
-        else
-          case @operator.name.to_sym
-            when :Airtel
-              case sms._Content
-                when /valeur transferee ([0-9]*) CFA/i
-                  cfas = $1
-                  log_msg :SMScontrol, "Got #{cfas} CFAs"
-                  if do_autocharge?
-                    recharge_all( cfas )
-                  else
-                    log_msg :SMScontrol, 'Not recharging, waiting for more...'
-                  end
-                when /votre abonnement internet/,
-                    /Vous avez achete le forfait/
-                  if @state_goal != Device::CONNECTED
-                    make_connection
-                    log_msg :SMScontrol, 'Airtel - make connection'
-                  end
-              end
-            when :Tigo
-              if do_autocharge? &&
-                  !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
+        rescue_all do
+          log_msg :SMS, "Working on SMS #{sms.inspect}"
+          if sms._Content =~ /^cmd:/i
+            if (ret = interpret_commands(sms._Content))
+              log_msg :SMS, "Sending to #{sms._Phone} - #{ret.inspect}"
+              @device.sms_send(sms._Phone, ret.join('::'))
+            end
+          else
+            case @operator.name.to_sym
+              when :Airtel
                 case sms._Content
-                  when /200.*cfa/i
-                    @state_goal = Device::DISCONNECTED
-                    log_msg :SMS, 'Getting internet-credit'
-                    @device.sms_send(100, 'internet')
-                    sleep 5
-                  when /350.*cfa/i
-                    @state_goal = Device::DISCONNECTED
-                    log_msg :SMS, 'Getting internet-credit'
-                    @device.sms_send(200, 'internet')
-                    sleep 5
-                  when /850.*cfa/i
-                    @state_goal = Device::DISCONNECTED
-                    log_msg :SMS, 'Getting internet-credit'
-                    @device.sms_send(1111, 'internet')
-                    sleep 5
-                  when /souscription reussie/i
-                    log_msg :SMS, 'Asking credit'
-                    make_connection
+                  when /valeur transferee ([0-9]*) CFA/i
+                    cfas = $1
+                    log_msg :SMScontrol, "Got #{cfas} CFAs"
+                    if do_autocharge?
+                      recharge_all(cfas)
+                    else
+                      log_msg :SMScontrol, 'Not recharging, waiting for more...'
+                    end
+                  when /votre abonnement internet/,
+                      /Vous avez achete le forfait/
+                    if @state_goal != Device::CONNECTED
+                      make_connection
+                      log_msg :SMScontrol, 'Airtel - make connection'
+                    end
                 end
-              end
+              when :Tigo
+                if do_autocharge? &&
+                    !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
+                  case sms._Content
+                    when /200.*cfa/i
+                      @state_goal = Device::DISCONNECTED
+                      log_msg :SMS, 'Getting internet-credit'
+                      @device.sms_send(100, 'internet')
+                      sleep 5
+                    when /350.*cfa/i
+                      @state_goal = Device::DISCONNECTED
+                      log_msg :SMS, 'Getting internet-credit'
+                      @device.sms_send(200, 'internet')
+                      sleep 5
+                    when /850.*cfa/i
+                      @state_goal = Device::DISCONNECTED
+                      log_msg :SMS, 'Getting internet-credit'
+                      @device.sms_send(1111, 'internet')
+                      sleep 5
+                    when /souscription reussie/i
+                      log_msg :SMS, 'Asking credit'
+                      make_connection
+                  end
+                end
+            end
           end
         end
         @device.sms_delete(sms._Index)
