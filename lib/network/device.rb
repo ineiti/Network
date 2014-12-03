@@ -67,7 +67,7 @@ module Network
     def del(dev)
       @present.each { |d|
         if d.check_me(dev)
-          log_msg :Listener, "Deleting device #{d.inspect} - #{dev.inspect}"
+          log_msg :Listener, "Deleting device #{d.dev.inspect}"
           d.down
           changed
           notify_observers(:del, d)

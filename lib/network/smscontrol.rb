@@ -23,6 +23,7 @@ module Network
       @traffic_goal = 0
       @recharge_hold = false
       @sms_injected = []
+      @asked_add_internet = nil
 
       @device = nil
       Network::Device.add_observer(self)
@@ -121,19 +122,22 @@ module Network
       @operator.update_internet_left
 
       if @operator.internet_left >= 0 and @state_goal == UNKNOWN
-        @state_goal = if @operator.internet_left > @min_traffic
-                        Device::CONNECTED
-                      else
-                        if @operator.credit_left == 0
-                          Device::DISCONNECTED
-                        else
-                          if @operator.credit_left > 0 &&
-                              @operator.credit_left >= @operator.internet_cost_smallest
-                            inject_sms("valeur transferee #{@operator.credit_left} CFA")
-                          end
-                          UNKNOWN
-                        end
-                      end
+        if @operator.internet_left > @min_traffic
+          @state_goal = Device::CONNECTED
+        else
+          if @operator.credit_left == 0
+            @state_goal = Device::DISCONNECTED
+          else
+            if @operator.credit_left > 0 &&
+                @operator.credit_left >= @operator.internet_cost_smallest
+              if !@asked_add_internet || (Time.now - @asked_add_internet > 300)
+                inject_sms("valeur transferee #{@operator.credit_left} CFA")
+                @asked_add_internet = Time.now
+              end
+            end
+            @state_goal = UNKNOWN
+          end
+        end
       end
 
       old = @state_now
@@ -191,6 +195,7 @@ module Network
       log_msg :SMScontrol, "Recharging for #{cfas}"
       @operator.internet_add_cost(cfas)
       @send_status = true
+      @state_now != Device::CONNECTED and @state_now = UNKNOWN
     end
 
     def check_sms
