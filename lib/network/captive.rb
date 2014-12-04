@@ -312,8 +312,8 @@ module Network
     end
 
     def setup(dev = nil)
-      log_ "Setting up with #{dev.class.name} - #{dev.operator}"
       if dev
+        log_ "Setting up with #{dev.class.name} - #{dev.operator}"
         @device = dev
         @operator = dev.operator
       end
