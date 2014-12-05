@@ -13,11 +13,77 @@ module Network
           {cost: 30_000, volume: 5_000_000_000, code: 2030}
       ]
 
+      def initialize(device)
+        super(device)
+        @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
+        @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
+        @internet_left = -1
+        @credit_left = -1
+      end
+
+      def new_sms(list, id)
+        treated = false
+        if list[id][1] == '"CPTInternet"'
+          if str = list[id][4]
+            if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
+              bytes, mult = left[2].split
+              (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
+                  bytes = (bytes.to_f * 10 ** exp).to_i
+              dputs(2) { "Got internet: #{bytes} :: #{str}" }
+              @internet_left = bytes.to_i
+              treated = true
+            elsif str =~ /Vous n avez aucun abonnement/
+              dputs(2) { "Got internet-none: 0 :: #{str}" }
+              @internet_left = 0
+              treated = true
+            end
+          end
+        end
+        if treated
+          sleep 5
+          #@device.serial_sms_to_delete.push id
+          @device.sms_delete id
+        end
+      end
+
+      def new_ussd(code, str)
+        dputs(2) { "#{code} - #{str.inspect}" }
+        if str =~ /Apologies, there has been a system error./
+          log_msg :Airtel, "Saw apologies-message for #{code} - retrying"
+          ussd_send code
+        else
+          case code
+            when '*100#'
+              if left = str.match(/([0-9\.]+)*\s*CFA/)
+                @credit_left = left[1]
+              end
+            when '*128#'
+              if left = str.match(/([0-9\.]+\s*.[oObB])/)
+                bytes, mult = left[1].split
+                @internet_left = -1 unless (bytes && mult)
+                (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
+                    bytes = (bytes.to_f * 10 ** exp).to_i
+                dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
+                @internet_left = bytes
+              end
+              @internet_left = 0
+            when /^\*123/
+              update_credit_left(true)
+            else
+              case str
+                # This is Airtel, but perhaps Tigo'll have something like that, too
+                when /epuise votre forfait Internet/
+                  @internet_left = 0
+              end
+          end
+        end
+      end
+
       def ussd_send(str)
         @device.ussd_send(str)
       end
 
-      def credit_left(force = false)
+      def update_credit_left(force = false)
         if (force || !@last_credit) ||
             (Time.now - @last_credit > 60 &&
                 @device.connection_status == Device::CONNECTED) ||
@@ -26,11 +92,7 @@ module Network
           ussd_send('*100#')
           @last_credit = Time.now
         end
-        if str = @device.ussd_fetch('*100#')
-          if left = str.match(/([0-9\.]+)*\s*CFA/)
-            return left[1]
-          end
-        end
+        @credit_left
       end
 
       def credit_add(code)
@@ -41,7 +103,7 @@ module Network
         ussd_send("*190*#{pass}*#{nbr}*#{credit}#") or return nil
       end
 
-      def internet_left(force = false)
+      def update_internet_left(force = false)
         if (force || !@last_traffic) ||
             (Time.now - @last_traffic > 60 &&
                 @device.connection_status == Device::CONNECTED) ||
@@ -50,31 +112,7 @@ module Network
           ussd_send('*128#')
           @last_traffic = Time.now
         end
-        if str = @device.ussd_fetch('*128#')
-          if left = str.match(/([0-9\.]+\s*.[oObB])/)
-            bytes, mult = left[1].split
-            return -1 unless (bytes && mult)
-            (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-                bytes = (bytes.to_f * 10 ** exp).to_i
-            dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
-            return bytes
-          end
-          return 0
-        end
-        return -1
-=begin
-        case sms._Content
-          when /100/
-            @max_traffic = 3000000
-          when /200/
-            @max_traffic = 6000000
-          when /800/
-            @max_traffic = 30000000
-        end
-        if Date.today.wday % 6 == 0
-          @max_traffic *= 2
-        end
-=end
+        @internet_left
       end
 
       def internet_add(volume)
