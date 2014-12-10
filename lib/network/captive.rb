@@ -9,7 +9,7 @@ module Network
     attr_accessor :usage_daily, :ips_idle, :mac_list, :ip_list, :restricted,
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
-                  :openvpn_allow_double, :allow_double
+                  :openvpn_allow_double, :allow_double, :cleanup_skip
 # Iptable-rules:
 # filter:FCAPTIVE - should be called at the end of the filter:FORWARD-table
 #   allows new users and finishes with a BLOCK
@@ -47,6 +47,7 @@ module Network
     @iptables_present = System.exists? 'iptables'
 
     @usage_daily = 0
+    @cleanup_skip = false
 
     def log(msg)
       dputs(3) { msg }
@@ -269,6 +270,8 @@ module Network
 
 # This can be called from time to time to check on idle people
     def cleanup
+      return if @cleanup_skip
+
       if @device.connection_status == Device::DISCONNECTED
         if ips_connected.length > 0
           if @operator.type != Operator::CONNECTION_ALWAYS
@@ -389,14 +392,14 @@ module Network
     end
 
     def user_connected(name)
-      @users_conn.has_key? name
+      @users_conn.has_key? name.to_s
     end
 
     def ips_connected
       @users_conn.collect { |u, ip| ip }
     end
 
-    def user_connect(ip, n, free = false)
+    def user_connect(n, ip, free = false)
       @device and @device.connection_start
       name = n.to_s
 
@@ -418,9 +421,10 @@ module Network
       ip_forward ip, true
     end
 
-    def user_disconnect_name(name)
-      return unless ip = @users_conn[name.to_s]
-      user_disconnect(name.to_s, ip)
+    def user_disconnect_name(n)
+      name = n.to_s
+      return unless ip = @users_conn[name]
+      user_disconnect(name, ip)
     end
 
     def user_disconnect_ip(ip)
@@ -434,11 +438,12 @@ module Network
       }
     end
 
-    def user_disconnect(name, ip = nil)
+    def user_disconnect(n, ip = nil)
+      name = n.to_s
       log_ "user_disconnect #{name}:#{ip} - #{@users_conn.inspect}"
 
       ip or (return unless ip = @users_conn[name])
-      log_ "really disconnecting #{name} from #{ip}"
+      log_ "really disconnecting #{name.inspect} from #{ip}"
       @users_conn.delete name
       ip_forward ip, false
 

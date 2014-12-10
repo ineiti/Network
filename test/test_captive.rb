@@ -23,7 +23,7 @@ puts
 
 exit
 
-Captive.user_connect '192.168.10.146', 'ineiti'
+Captive.user_connect 'ineiti', '192.168.10.146'
 puts Captive.users_connected.inspect
 puts Captive.iptables '-L -nv'
 sleep 2
@@ -31,7 +31,7 @@ Captive.user_disconnect 'ineiti'
 puts Captive.users_connected.inspect
 puts Captive.iptables '-L -nv'
 sleep 2
-Captive.user_connect '192.168.10.146', 'ineiti'
+Captive.user_connect 'ineiti', '192.168.10.146'
 puts Captive.users_connected.inspect
 puts Captive.iptables '-L -nv'
 sleep 2

@@ -3,6 +3,7 @@ require 'helperclasses'
 module Network
   module Device
     class Simulation < Stub
+      attr_accessor :connection_status
       include HelperClasses::DPuts
       @ids = [{bus: 'simulation', uevent: {interface: 'simul0'}}]
       @credit = 100
@@ -14,6 +15,7 @@ module Network
         dputs(2) { 'Got a new simulation device' }
         super(dev)
         @operator = Operator.search_name(:simulation, self)
+        @connection_status = DISCONNECTED
       end
 
       def connection_may_stop
