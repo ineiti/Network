@@ -44,6 +44,7 @@ module Network
     @device = nil
 
     @iptables_wait = ''
+    @iptables_present = System.exists? 'iptables'
 
     @usage_daily = 0
 
@@ -56,8 +57,13 @@ module Network
     end
 
     def iptables(*cmds)
-      log cmds.join(' ')
-      System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
+      if @iptables_present
+        log cmds.join(' ')
+        System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
+      else
+        log cmds.join(' ')
+        ''
+      end
     end
 
     def ipnat(*cmds)
@@ -188,9 +194,13 @@ module Network
       iptables '-F FCAPTIVE'
 
       @allow_dhcp ||= %w( 255.255.255.255 )
-      @internal_ips ||=
-          System.run_str('ip addr | grep "inet " | ' +
-                             'sed -e "s/.*inet \([^\/ ]*\).*/\1/" | grep -v 127.0.0.1').split
+      if System.exists? 'ip'
+        @internal_ips ||=
+            System.run_str('ip addr | grep "inet " | ' +
+                               'sed -e "s/.*inet \([^\/ ]*\).*/\1/" | grep -v 127.0.0.1').split
+      else
+        @internal_ips ||= []
+      end
       @allow_dst ||= @internal_ips
       log_ "Internal is #{internal_ips}"
       log_ "Allow_dhcp is #{allow_dhcp} - allow_dst is #{allow_dst}"
@@ -209,10 +219,12 @@ module Network
         iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
       }
 
-      if !@captive_dnat &&
-          System.run_str('ip addr | grep "inet .*\.1\/.* brd"') =~ /inet (.*)\/.* brd/
-        @captive_dnat = $1
-        log_ "Found local gateway and defining as captive: #{@captive_dnat}"
+      if !@captive_dnat
+        if System.exists?('ip') &&
+            System.run_str('ip addr | grep "inet .*\.1\/.* brd"') =~ /inet (.*)\/.* brd/
+          @captive_dnat = $1
+          log_ "Found local gateway and defining as captive: #{@captive_dnat}"
+        end
       end
       if @captive_dnat
         log_ "Captive dnatting #{@captive_dnat}"
@@ -255,7 +267,7 @@ module Network
       end
     end
 
-    # This can be called from time to time to check on idle people
+# This can be called from time to time to check on idle people
     def cleanup
       if @device.connection_status == Device::DISCONNECTED
         if ips_connected.length > 0
@@ -349,7 +361,7 @@ module Network
       log "Blocking #{ip}"
     end
 
-    # Restriction for a particular center - should be made more general...
+# Restriction for a particular center - should be made more general...
     def restr_man(net, block)
       %w( 10.1.0.0/24 10.1.8.0/21 10.2.8.0/21 ).each { |default|
         ip_drop default, block

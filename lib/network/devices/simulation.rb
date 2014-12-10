@@ -4,11 +4,29 @@ module Network
   module Device
     class Simulation < Stub
       include HelperClasses::DPuts
-      @ids = []
+      @ids = [{bus: 'simulation', uevent: {interface: 'simul0'}}]
       @credit = 100
       @connection = false
       @sms = []
       @sms_index = 0
+
+      def initialize(dev)
+        dputs(2) { 'Got a new simulation device' }
+        super(dev)
+        @operator = Operator.search_name(:simulation, self)
+      end
+
+      def connection_may_stop
+
+      end
+
+      def reset
+
+      end
+
+      def down
+
+      end
 
       def credit_left
         @credit
@@ -25,12 +43,12 @@ module Network
 
       def connection_start
         dputs(3) { 'Starting connection' }
-        @connection = MODEM_CONNECTED
+        @connection = CONNECTED
       end
 
       def connection_stop
         dputs(3) { 'Stopping connection' }
-        @connection = MODEM_DISCONNECTED
+        @connection = DISCONNECTED
       end
 
       def connection_status
@@ -69,8 +87,8 @@ module Network
                    :Content => content, :Date => date})
       end
 
-      def self.simulate
-        @ids = [{bus: '.*'}]
+      def self.load
+        Device.add(@ids.first)
       end
     end
   end

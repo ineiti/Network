@@ -44,22 +44,25 @@ module Network
     end
 
     def add(dev)
-      #dputs_func
-      dputs(3) { "Checking whether we find #{dev}" }
-      @devices.each { |name, d|
-        dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
-        if d.check_new(dev)
-          dputs(2) { "Adding device #{name} - #{dev.inspect}" }
-          @present.push d.new(dev)
-          changed
-          notify_observers(:add, @present.last)
-          dputs(3) { 'notified observers' }
-        end
-      }
+      newdev = nil
+      HelperClasses::System.rescue_all do
+        dputs(3) { "Checking whether we find #{dev}" }
+        @devices.each { |name, d|
+          dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
+          if d.check_new(dev)
+            dputs(2) { "Adding device #{name} - #{dev.inspect}" }
+            @present.push (newdev = d.new(dev))
+            changed
+            notify_observers(:add, @present.last)
+            dputs(3) { 'notified observers' }
+          end
+        }
+      end
+      newdev
     end
 
     def del_udev(subs, env)
-      rescue_all{
+      rescue_all {
         del env_to_dev(subs, env, true)
       }
     end
@@ -196,22 +199,26 @@ module Network
       end
 
       def self.check_this(dev, attributes, dev_self = @dev)
-        dputs(3) { "Checking #{dev} against device #{dev_self.inspect}" }
+        dputs(3) { "Checking #{dev} against device #{dev_self.inspect} in #{attributes.inspect}" }
         attributes.each { |a|
           att = a.to_sym
-          ds = dev_self[att]
-          return false unless (d = dev[att])
-          dputs(3) { "Checking #{att} - #{ds.inspect} - #{d.inspect}" }
-          case ds.class.to_s
+          d_self = dev_self[att]
+          d_other = dev[att]
+          dputs(3) { "Checking #{att} - #{d_self.inspect} - #{d_other.inspect}" }
+          return false unless d_other
+          case d_self.class.to_s
             when /Array/
-              ds.each { |v| return false unless d.index(v) }
+              d_self.each { |v| return false unless d_other.index(v) }
             when /Hash/
-              ds.each { |k, v| return false unless d[k.to_s] =~ /^#{v}$/ }
+              d_self.each { |k, v|
+                do_data = d_other.send("_#{k}")
+                dputs(4) { "Checking #{k.inspect}: #{do_data.inspect} against #{v.inspect}" }
+                return false unless do_data =~ /^#{v}$/ }
             else
-              return false unless ds =~ /^#{d}$/
+              return false unless d_self =~ /^#{d_other}$/
           end
         }
-        log_msg( :Device, "Found device #{dev.inspect} in #{self.class.name}")
+        log_msg(:Device, "Found device #{dev.inspect} in #{self.class.name}")
         return true
       end
 
