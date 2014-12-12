@@ -453,5 +453,12 @@ module Network
     def user_cost_now
       10
     end
+
+    def user_keep(n)
+      name = n.to_s
+      return unless ip = @users_conn[name]
+      log_ "Keeping #{name} from #{ip}"
+      @ips_idle.delete ip
+    end
   end
 end
