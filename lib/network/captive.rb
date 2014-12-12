@@ -160,6 +160,13 @@ module Network
       log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
+    def var_array(name, splitchar = ',')
+      val = self.send("#{name}") || ''
+      val = (val.length > 0 ? val.split(splitchar) : [])
+      self.send("#{name}=", val)
+      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
+    end
+
     def var_string_nil(name)
       val = self.send("#{name}")
       self.send("#{name}=", (val && val.length > 0) ? val : nil)
@@ -181,8 +188,11 @@ module Network
       %w( prerouting http_proxy captive_dnat restricted ).each { |var|
         var_string_nil(var)
       }
-      %w( allow_dst internal_ips allow_src_direct allow_src_proxy ).each { |var|
+      %w( allow_dst internal_ips ).each { |var|
         var_array_nil(var)
+      }
+      %w( allow_src_direct allow_src_proxy mac_list ).each { |var|
+        var_array(var)
       }
       %w( openvpn_allow_double ).each { |var|
         var_bool(var)
@@ -203,17 +213,16 @@ module Network
         @internal_ips ||= []
       end
       @allow_dst ||= @internal_ips
-      log_ "Internal is #{internal_ips}"
-      log_ "Allow_dhcp is #{allow_dhcp} - allow_dst is #{allow_dst}"
+      log "Internal is #{internal_ips}"
+      log "Allow_dhcp is #{allow_dhcp} - allow_dst is #{allow_dst}"
       (allow_dhcp + internal_ips + allow_dst).each { |ip|
-        log_ "Allowing requests to #{ip} to go through"
+        log "Allowing requests to #{ip} to go through"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
         iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
       }
 
-      @allow_src_direct ||= []
       @allow_src_direct.each { |ip|
-        log_ "Allowing requests from #{ip} to go through"
+        log "Allowing requests from #{ip} to go through"
         ipnat "-A NOCAPTIVE -s #{ip} -j ACCEPT"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
         iptables "-A FCAPTIVE -s #{ip} -j ACCEPT"
@@ -224,26 +233,25 @@ module Network
         if System.exists?('ip') &&
             System.run_str('ip addr | grep "inet .*\.1\/.* brd"') =~ /inet (.*)\/.* brd/
           @captive_dnat = $1
-          log_ "Found local gateway and defining as captive: #{@captive_dnat}"
+          log "Found local gateway and defining as captive: #{@captive_dnat}"
         end
       end
       if @captive_dnat
-        log_ "Captive dnatting #{@captive_dnat}"
+        log "Captive dnatting #{@captive_dnat}"
         ipnat "-I CAPTIVE -j DNAT --to-dest #{@captive_dnat}"
       end
 
       @ip_list.each { |ip|
-        log_ "Accepting IP #{ip}"
+        log "Accepting IP #{ip}"
         ip_accept ip, true
       }
       @mac_list.each { |mac|
-        log_ "Accepting mac #{mac}"
+        log "Accepting mac #{mac}"
         mac_accept mac
       }
 
-      @allow_src_proxy ||= []
       @allow_src_proxy.each { |ip|
-        log_ "Allowing requests from #{ip} to go through Proxy"
+        log "Allowing requests from #{ip} to go through Proxy"
         ipnat "-A NOCAPTIVE -s #{ip} -j INTERNET"
         ipnat "-A NOCAPTIVE -d #{ip} -j INTERNET"
         iptables "-A FCAPTIVE -s #{ip} -j ACCEPT"
@@ -251,7 +259,7 @@ module Network
       }
 
       iptables '-A FCAPTIVE -j RETURN'
-      log_ 'Finished clean up'
+      log 'Finished cleaning up'
     end
 
     def accept_all
