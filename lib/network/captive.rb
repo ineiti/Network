@@ -33,6 +33,8 @@ module Network
     @allow_dhcp = %w( 255.255.255.255 )
     @restricted = nil
 
+# Countdown for all idle IPs. Can be positive (keep_idle_minutes) or
+# negative (user_keep). Disconnected on 0
     @ips_idle = {}
     @mac_list = []
     @ip_list = []
@@ -308,18 +310,20 @@ module Network
       else
         ips_connected.each { |ip|
           packets = packets_count ip
-          log "Checking ip #{ip} - has #{packets} packets"
+          log "Checking ip #{ip} - has #{packets} packets - " +
+                  "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
           if packets == 0
-            if @ips_idle.has_key? ip
-              if @ips_idle[ip] += 1 > @keep_idle_minutes
+            if min = @ips_idle[ip]
+              @ips_idle[ip] -= min.abs / min
+              if @ips_idle[ip] == 0
                 log_ "No packets from #{ip} for #{@keep_idle_minutes}, kicking"
                 user_disconnect_ip ip
                 @ips_idle.delete ip
-                log "ips_idle is now #{@ips_idle}"
               end
+              log "ips_idle is now #{@ips_idle.inspect}"
             else
               log "#{ip} is idle, adding to list"
-              @ips_idle[ip] = 1
+              @ips_idle[ip] = @keep_idle_minutes
             end
           else
             @ips_idle.delete ip
@@ -475,11 +479,13 @@ module Network
       10
     end
 
-    def user_keep(n)
+    def user_keep(n, min)
       name = n.to_s
       return unless ip = @users_conn[name]
-      log_ "Keeping #{name} from #{ip}"
-      @ips_idle.delete ip
+      if @ips_idle.has_key?(ip) && @ips_idle[ip] > 0
+        log "Keeping #{name} from #{ip} for #{min} minutes"
+        @ips_idle[ip] = -min
+      end
     end
   end
 end
