@@ -9,7 +9,8 @@ module Network
     attr_accessor :usage_daily, :ips_idle, :mac_list, :ip_list, :restricted,
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
-                  :openvpn_allow_double, :allow_double, :cleanup_skip
+                  :openvpn_allow_double, :allow_double, :cleanup_skip,
+                  :keep_idle_minutes
 # Iptable-rules:
 # filter:FCAPTIVE - should be called at the end of the filter:FORWARD-table
 #   allows new users and finishes with a BLOCK
@@ -27,11 +28,12 @@ module Network
     @openvpn_allow_double = false
     @allow_src_direct = []
     @allow_src_proxy = []
+    @keep_idle_minutes = 3
 
     @allow_dhcp = %w( 255.255.255.255 )
     @restricted = nil
 
-    @ips_idle = []
+    @ips_idle = {}
     @mac_list = []
     @ip_list = []
 
@@ -184,6 +186,12 @@ module Network
       log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
+    def var_int(name)
+      val = self.send("#{name}") or return false
+      self.send("#{name}=", val.to_i)
+      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
+    end
+
     def clean_config
       %w( prerouting http_proxy captive_dnat restricted ).each { |var|
         var_string_nil(var)
@@ -196,6 +204,9 @@ module Network
       }
       %w( openvpn_allow_double ).each { |var|
         var_bool(var)
+      }
+      %w( keep_idle_minutes ).each { |var|
+        var_int(var)
       }
     end
 
@@ -299,14 +310,16 @@ module Network
           packets = packets_count ip
           log "Checking ip #{ip} - has #{packets} packets"
           if packets == 0
-            if @ips_idle.index ip
-              log_ "No packets, kicking #{ip}"
-              user_disconnect_ip ip
-              @ips_idle.delete ip
-              log "ips_idle is now #{@ips_idle}"
+            if @ips_idle.has_key? ip
+              if @ips_idle[ip] += 1 > @keep_idle_minutes
+                log_ "No packets from #{ip} for #{@keep_idle_minutes}, kicking"
+                user_disconnect_ip ip
+                @ips_idle.delete ip
+                log "ips_idle is now #{@ips_idle}"
+              end
             else
               log "#{ip} is idle, adding to list"
-              @ips_idle.push ip
+              @ips_idle[ip] = 1
             end
           else
             @ips_idle.delete ip
