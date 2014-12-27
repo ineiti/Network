@@ -19,6 +19,10 @@ module Network
     @mixed = ChunkyPNG::Color.rgb(0xff, 0xff, 0)
     @html_head = '<title>Graph for Bakhita</title>'
     @html_style = '
+      body {
+          background-color: #607860;
+      }
+
       .main {
           margin-left: auto;
           margin-right: auto;
