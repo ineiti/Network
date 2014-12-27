@@ -282,7 +282,15 @@ module Network
     end
 
     def packets_count(ip)
-      if packets = iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}/ }
+      if packets = iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}[^0-9]/ }
+        packets.split.first.to_i
+      else
+        0
+      end
+    end
+
+    def bytes_count(ip)
+      if packets = iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}[^0-9]/ }
         packets.split.first.to_i
       else
         0
