@@ -71,7 +71,7 @@ module Network
       colors = [@inactive, @mixed, @active]
       pngs = {}
       states = {}
-      log_lines.first[1].each { |host, st|
+      @host_names.each_key { |host|
         pngs[host] = ChunkyPNG::Image.new(@bar_size._width, @bar_size._height)
         states[host] = nil
       }
@@ -85,7 +85,8 @@ module Network
           states[host] *= state == states[host] ? 1 : 0
           if t_start != t_end
             color = colors[states[host] + 1]
-            pngs[host].rect(t_start, 0, t_end, @bar_size._height, color, color)
+            pngs[host] and
+                 pngs[host].rect(t_start, 0, t_end, @bar_size._height, color, color)
             states[host] = nil
           end
         }
@@ -103,7 +104,7 @@ module Network
       end
 
       d = log_lines.first[0]
-      log_lines.first[1].collect { |host, v|
+      @host_names.collect { |host,_v|
         filename = "#{@html_dir}/bar_#{d.year}_#{d.month}_#{d.day}-#{host}.png"
         pngs[host].save(filename)
         [host, filename]
@@ -150,10 +151,10 @@ module Network
       date = Time.now.strftime('%Y-%m-%d_%H.%M.%S')
       hosts = @host_names.sort.collect { |host, name|
         status = System.run_bool "ping -n -W 2 -q -c 1 #{host} > /dev/null"
-        "#{host}:#{status}"
+        "#{host}:#{status ? 'up' : 'down'}"
       }.join(',')
       File.open(@log_file, 'a') { |f|
-        f.write("#{date}::#{hosts}")
+        f.write("#{date}::#{hosts}\n")
       }
     end
   end
