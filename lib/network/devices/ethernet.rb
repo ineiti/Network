@@ -1,7 +1,8 @@
 module Network
   module Device
     class Ethernet < Stub
-      @ids = [{class: 'net', uevent: {interface: 'eth.*'}}]
+      @ids = [{class: 'net', uevent: {interface: 'eth.*'}},
+              {class: 'net', uevent: {interface: 'br.*'}}]
 
       def connection_start
 

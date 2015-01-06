@@ -19,7 +19,7 @@ module Network
         end
       end
 
-      def read_config(file = 'grapher.conf.rb', arg = nil)
+      def setup_config(file = 'grapher.conf.rb', arg = nil)
         @config = ReadConfig.ruby(arg || ReadConfig.file_name(file))
 
         @vlans = @config._vlans || []

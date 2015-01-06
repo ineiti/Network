@@ -33,7 +33,8 @@ require 'network/captive'
 #require 'network/connection'
 require 'network/mail'
 require 'network/smscontrol'
-require 'network/check_hosts'
+require 'network/monitor/ping'
+require 'network/monitor/traffic'
 
 module Network
   extend self
