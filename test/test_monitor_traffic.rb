@@ -4,7 +4,7 @@ include Network::Monitor
 
 def main
   #test_setup
-  #test_create_rrb
+  test_create_rrb
   #test_create_iptables
   test_measure
 end
@@ -19,7 +19,7 @@ end
 
 def test_create_rrb
   test_setup
-  Traffic.create_rrb
+  Traffic.create_rrb(false)
 end
 
 def test_create_iptables
@@ -30,7 +30,8 @@ end
 def test_measure
   #test_create_iptables
   test_setup
-  Traffic.measure
+  Traffic.run_measure
+  sleep 10
 end
 
 main

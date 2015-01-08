@@ -6,7 +6,7 @@ require 'tmpdir'
 module Network
   module Monitor
     module Traffic
-      attr_accessor :config, :vlans, :hosts, :bw, :db, :table
+      attr_accessor :config, :vlans, :hosts, :bw, :db, :table, :thread
       extend self
       include HelperClasses
       extend DPuts
@@ -29,9 +29,11 @@ module Network
         @config._bw_upper ||= 1_000_000
         @table = 'mangle'
         @old_values=[0] * ((@bw ? 3 : 0) + @vlans.length + @hosts.length)
+        @thread
       end
 
-      def create_rrb
+      def create_rrb(replace = true)
+        return if (File.exists?(@db) and !replace)
         bw_int = @bw ? {bw_min: 'GAUGE',
                         bw_max: 'GAUGE',
                         total: 'COUNTER'}.collect { |label, type|
@@ -60,7 +62,7 @@ module Network
       end
 
       def color(nbr)
-        c = ( @config._colors and @config._colors[nbr] ) || '0ff'
+        c = (@config._colors and @config._colors[nbr]) || '0ff'
         c.scan(/./).collect { |c| c+c }.join
       end
 
@@ -135,7 +137,7 @@ module Network
             val =~ / #{@config._host_ips[h]} /
           }.map { |val|
             dp val
-            val.split[1] }.collect{|a| a.to_i }
+            val.split[1] }.collect { |a| a.to_i }
           ld h, bytes.inspect
           data.push bytes[1]
         }
@@ -146,8 +148,8 @@ module Network
         ld @vlans.join(':')
         ld @hosts.join(':')
         labels = @bw ? 'bw_min:bw_max:total:' : ''
-        dp labels += (@vlans.collect{|v| "vlan#{v}"} +
-               @hosts.collect{|h| "host#{h}"}).join(':')
+        dp labels += (@vlans.collect { |v| "vlan#{v}" } +
+               @hosts.collect { |h| "host#{h}" }).join(':')
         dp System.run_str(dp "rrdtool update #{@db} -t #{labels} N:#{data.join(':')}")
         graph_traffic
         total = 0
@@ -155,6 +157,13 @@ module Network
         ld (vals = @old_values.zip(data)[start..-1].collect { |a, b| (b - a) * 8 / 10 }).join(':')
         ld vals.inject(:+)
         @old_values = data
+      end
+
+      def run_measure
+        @thread = Thread.new{
+          measure
+          sleep 20
+        }
       end
 
       def ipt(*args)
