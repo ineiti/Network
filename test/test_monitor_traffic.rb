@@ -3,9 +3,10 @@ require 'network/monitor/traffic'
 include Network::Monitor
 
 def main
-  test_measure
+  #test_setup
   #test_create_rrb
   #test_create_iptables
+  test_measure
 end
 
 def test_setup

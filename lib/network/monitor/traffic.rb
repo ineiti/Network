@@ -20,6 +20,7 @@ module Network
           else
             Raise 'Config not found'
         end
+        dp @config
 
         @vlans = @config._vlans || []
         @hosts = @config._hosts || []
