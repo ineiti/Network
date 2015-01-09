@@ -6,7 +6,8 @@ require 'tmpdir'
 module Network
   module Monitor
     module Traffic
-      attr_accessor :config, :vlans, :hosts, :bw, :db, :table, :thread
+      attr_accessor :config, :vlans, :hosts, :bw, :db, :table, :thread,
+                    :imgs_dir
       extend self
       include HelperClasses
       extend DPuts
@@ -20,7 +21,6 @@ module Network
           else
             Raise 'Config not found'
         end
-        dp @config
 
         @vlans = @config._vlans || []
         @hosts = @config._hosts || []
@@ -29,6 +29,7 @@ module Network
         @config._bw_upper ||= 1_000_000
         @table = 'mangle'
         @old_values=[0] * ((@bw ? 3 : 0) + @vlans.length + @hosts.length)
+        @imgs_dir = @config._imgs_dir || '/srv/http/traffic'
         @thread
       end
 
@@ -37,14 +38,14 @@ module Network
         bw_int = @bw ? {bw_min: 'GAUGE',
                         bw_max: 'GAUGE',
                         total: 'COUNTER'}.collect { |label, type|
-          "DS : #{label} : #{type} : 20 : 0 : #{@config._bw_internet}"
+          "DS:#{label}:#{type}:60:0:#{@config._bw_internet}"
         }.join(' ') : ''
 
         counters = @vlans.collect { |v|
-          "DS:vlan#{v}:COUNTER:20:0:#{@config._bw_upper}"
+          "DS:vlan#{v}:COUNTER:60:0:#{@config._bw_upper}"
         }.concat(
             @hosts.collect { |h|
-              "DS:host#{h}:COUNTER:20:0:#{@config._bw_upper}"
+              "DS:host#{h}:COUNTER:60:0:#{@config._bw_upper}"
             }).join(' ')
 
         ranges = [[1, 600], [6, 1440], [60, 1728]].collect { |step, len|
@@ -54,16 +55,16 @@ module Network
         }.join(' ')
 
         File.exists?(@db) and FileUtils.rm_f(@db)
-        dp System.run_str(dp "rrdtool create #{@db} --step 10 #{bw_int} #{counters} #{ranges}")
+        System.run_str("rrdtool create #{@db} --step 10 #{bw_int} #{counters} #{ranges}")
       end
 
       def ld(*args)
-        dputs(1) { args.join(' ') }
+        dputs(3) { args.join(' ') }
       end
 
       def color(nbr)
         c = (@config._colors and @config._colors[nbr]) || '0ff'
-        c.scan(/./).collect { |c| c+c }.join
+        c.scan(/./).collect { |c| c+c }.join.upcase
       end
 
       def graph_traffic
@@ -94,17 +95,18 @@ module Network
         }
 
         Dir.mktmpdir { |d|
-          [['vlans-hour.png', -1800, 10],
-           ['vlans-halfday.png', -43200, 240],
-           ['vlans-week.png', -86400 * 7, 3600]].each { |png, start, step|
+          [['traffic1-hour.png', -1800, 10],
+           ['traffic2-halfday.png', -43200, 240],
+           ['traffic3-week.png', -86400 * 7, 3600]].each { |png, start, step|
             file = "#{d}/tmp"
             args = "graph -u #{@config._bw_upper} #{file} --start #{start} --step #{step} "
-            args += "-a PNG -t 'Traffic to internet' --vertical-label 'bps' -w 800 -h 200 -r "
+            args += "-a PNG -t 'Traffic to internet' --vertical-label 'bps' -w 600 -h 150 -r "
             args += [bw_defs, defs, bw_cdefs, cdefs].join(' ')
             args += " LINE1:0 #{lines} #{bw_lines}"
-            dp System.run_str(dp "rrdtool #{args}")
+            System.run_str("rrdtool #{args}")
             File.chmod(0444, file)
-            FileUtils.mv file, png
+            FileUtils.mkdir_p @imgs_dir
+            FileUtils.mv file, "#{@imgs_dir}/#{png}"
           }
         }
       end
@@ -130,27 +132,22 @@ module Network
           data.push bytes[1]
         }
         @hosts.each { |h|
-          dp h
-          dp @config
           bytes = values.select { |val|
-            dp val
             val =~ / #{@config._host_ips[h]} /
           }.map { |val|
-            dp val
             val.split[1] }.collect { |a| a.to_i }
           ld h, bytes.inspect
           data.push bytes[1]
         }
-        ld data.inspect
 
         ld "Updating #{Time.now}"
         ld data.join(':')
         ld @vlans.join(':')
         ld @hosts.join(':')
         labels = @bw ? 'bw_min:bw_max:total:' : ''
-        dp labels += (@vlans.collect { |v| "vlan#{v}" } +
+        labels += (@vlans.collect { |v| "vlan#{v}" } +
                @hosts.collect { |h| "host#{h}" }).join(':')
-        dp System.run_str(dp "rrdtool update #{@db} -t #{labels} N:#{data.join(':')}")
+        System.run_str("rrdtool update #{@db} -t #{labels} N:#{data.join(':')}")
         graph_traffic
         total = 0
         start = @bw ? 3 : 0
@@ -161,13 +158,16 @@ module Network
 
       def run_measure
         @thread = Thread.new{
-          measure
-          sleep 20
+          loop do
+            dp "Measuring and graphing at #{Time.now.to_s}"
+            measure
+            sleep 20
+          end
         }
       end
 
       def ipt(*args)
-        System.run_str(dp "iptables -t #{@table} #{args.join(' ')}")
+        System.run_str("iptables -t #{@table} #{args.join(' ')}")
       end
 
       def create_iptables

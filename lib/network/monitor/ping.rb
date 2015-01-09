@@ -144,6 +144,7 @@ module Network
             }.join +
             '</table>' +
             make_links(log_nbr) +
+            "<p><a href='../traffic/traffic.html'>Statistics de traffic</a></p>" +
             "</div></body></html>\n"
         IO.write(html_file(log_nbr), str)
       end

@@ -31,7 +31,7 @@ def test_measure
   #test_create_iptables
   test_setup
   Traffic.run_measure
-  sleep 10
+  sleep 1
 end
 
 main
