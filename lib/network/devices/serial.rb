@@ -19,10 +19,10 @@ module Network
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
-        Thread.new {
+        @thread_operator = Thread.new {
           rescue_all {
             (1..10).each { |i|
-              dputs(3) { "Searching operator #{i}" }
+              ddputs(3) { "Searching operator #{i}" }
               if @operator = Operator.search_name(get_operator, self)
                 rescue_all do
                   log_msg :Serial, "Got new operator #{@operator}"
@@ -86,6 +86,12 @@ module Network
       end
 
       def down
+        dputs(2) { 'Downing Serial-module' }
+        if @thread_operator
+          @thread_operator.kill
+          @thread_operator.join
+          dputs(1) { 'Joined thread-operator' }
+        end
         kill
       end
     end

@@ -53,7 +53,7 @@ module Network
             @operator = @device.operator
             @device.add_observer(self)
             @device.set_2g
-            log_msg :SMScontrol, "Got new device #{@device}"
+            log_msg :SMScontrol, "Got new device #{@device} with operator #{@operator}"
           end
         when /operator/
           @operator = @device.operator
