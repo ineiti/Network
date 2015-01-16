@@ -21,7 +21,7 @@ module Network
         super(device)
         @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
         @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
-        @internet_left = -1
+        @internet_left = Network::Operator.start_loaded ? 100_000_000 : -1
         @credit_left = -1
       end
 

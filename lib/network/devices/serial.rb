@@ -19,10 +19,12 @@ module Network
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
+        @netctl_dev = 'umts'
+        @network_dev = 'ppp0'
         @thread_operator = Thread.new {
           rescue_all {
             (1..10).each { |i|
-              ddputs(3) { "Searching operator #{i}" }
+              dputs(3) { "Searching operator #{i}" }
               if @operator = Operator.search_name(get_operator, self)
                 rescue_all do
                   log_msg :Serial, "Got new operator #{@operator}"
@@ -40,26 +42,26 @@ module Network
       def connection_start
         dputs(2) { 'Starting connection' }
         @connection_status = CONNECTING
-        Kernel.system('netctl restart ppp')
+        Kernel.system("netctl restart #{@netctl_dev}")
       end
 
       def connection_stop
         dputs(2) { 'Stopping connection' }
         @connection_status = DISCONNECTING
-        Kernel.system('netctl stop ppp')
+        Kernel.system("netctl stop #{@netctl_dev}")
       end
 
       def connection_status
         @connection_status =
-            if System.run_str('netctl status ppp | grep Active') =~ /: active/
-              if System.run_bool 'grep -q ppp0 /proc/net/route'
+            if System.run_str("netctl status #{@netctl_dev} | grep Active") =~ /: active/
+              if System.run_bool "grep -q #{@network_dev} /proc/net/route"
                 CONNECTED
               elsif System.run_bool 'pidof pppd'
                 CONNECTING
               else
                 ERROR_CONNECTION
               end
-            elsif System.run_str('netctl status ppp | grep Active') =~ /: inactive/
+            elsif System.run_str("netctl status #{@netctl_dev} | grep Active") =~ /: inactive/
               DISCONNECTED
             else
               ERROR_CONNECTION

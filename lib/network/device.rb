@@ -107,6 +107,11 @@ module Network
       }
     end
 
+    def start
+      start_drb
+      scan
+    end
+
     def start_drb
       DRb.start_service 'druby://localhost:9000', Network::Device
       log_msg :Device, "Server running at #{DRb.uri}"
@@ -237,6 +242,4 @@ module Network
   end
 
   Device.load
-  Device.start_drb
-  Device.scan
 end

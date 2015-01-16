@@ -2,7 +2,7 @@ require 'helperclasses/system.rb'
 
 module Network
   module Operator
-    attr_accessor :operators,
+    attr_accessor :operators, :start_loaded,
                   :cost_base, :cost_shared, :allow_free, :phone_main
 
     extend HelperClasses::DPuts
@@ -21,6 +21,7 @@ module Network
     @cost_shared = 10
     @allow_free = false
     @phone_main = nil
+    @start_loaded = false
 
     def search_name(name, dev)
       #dputs_func
@@ -53,6 +54,7 @@ module Network
       @cost_base &&= @cost_base.to_i
       @cost_shared &&= @cost_shared.to_i
       @allow_free = @allow_free == 'true'
+      @start_loaded = @start_loaded == 'true'
     end
 
 =begin
