@@ -441,8 +441,12 @@ module Network
           log_ "User #{name} already connected from #{ip}"
           return
         else
-          log_ "User #{name} already connected"
-          return unless @allow_double
+          if @allow_double
+            log_ "User #{name} connecting more than once"
+          else
+            log_ "User #{name} already connected, disconnecting other"
+            user_disconnect_name(name)
+          end
         end
       end
 
