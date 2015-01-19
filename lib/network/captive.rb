@@ -47,7 +47,7 @@ module Network
     @operator = nil
     @device = nil
 
-    @iptables_wait = ''
+    @iptables_wait = '-w'
     @iptables_present = System.exists? 'iptables'
 
     @usage_daily = 0
@@ -64,7 +64,7 @@ module Network
     def iptables(*cmds)
       if @iptables_present
         log cmds.join(' ')
-        System.run_str "iptables #{@iptables_wait} #{ cmds.join(' ') }"
+        System.run_str("iptables #{@iptables_wait} #{ cmds.join(' ') }")
       else
         log cmds.join(' ')
         ''

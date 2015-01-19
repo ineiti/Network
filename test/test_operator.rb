@@ -5,11 +5,12 @@ require 'helperclasses'
 include HelperClasses::DPuts
 
 def setup
+  Network::Device.start
   dp Network::Operator.list
   exit unless ($dev = Network::Device.search_dev({uevent: {driver: 'option'}})).length > 0
   dp $dev.inspect
   $dev = $dev.first
-  while ! $dev.operator
+  while !$dev.operator
     dp 'Waiting for operator'
     sleep 1
   end
@@ -21,7 +22,16 @@ def main
   setup
   #test_tigo_callback
   #test_send_credit
-  test_airtel_internet_left
+  #test_airtel_internet_left
+  test_observers
+end
+
+def test_observers
+  loop do
+    dp Time.now
+    dp $dev.inspect
+    sleep 5
+  end
 end
 
 def test_airtel_internet_left
@@ -45,8 +55,8 @@ def test_send_credit
   #dp $op.credit_left
   #sleep 10
   #dp $op.credit_left
-  dp $op.credit_send( '93999699', 100)
-  (1..10).each{
+  dp $op.credit_send('93999699', 100)
+  (1..10).each {
     dp $dev.sms_list
     sleep 3
   }
@@ -73,7 +83,7 @@ def test_internet_left
 end
 
 def test_internet_add
-  $op.internet_add( 10_000_000 )
+  $op.internet_add(10_000_000)
   sleep 20
   dp $op.credit_left
   dp $op.internet_left

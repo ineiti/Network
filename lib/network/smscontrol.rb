@@ -45,6 +45,7 @@ module Network
         when /del/
           if @device == dev
             log_msg :SMScontrol, "Lost device #{@device}"
+            @device.delete_observer(self)
             @device = @operator = nil
           end
         when /add/
@@ -52,7 +53,6 @@ module Network
             @device = dev
             @operator = @device.operator
             @device.add_observer(self)
-            @device.set_2g
             log_msg :SMScontrol, "Got new device #{@device} with operator #{@operator}"
           end
         when /operator/

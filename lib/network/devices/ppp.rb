@@ -49,7 +49,7 @@ module Network
       end
 
       def down
-
+        #@serial.delete_observer(self)
       end
     end
   end

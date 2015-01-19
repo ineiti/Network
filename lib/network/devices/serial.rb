@@ -84,7 +84,7 @@ module Network
       end
 
       def set_3g
-        set_connection_type('3g')
+        set_connection_type('3go')
       end
 
       def down

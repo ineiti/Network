@@ -1,4 +1,5 @@
 require 'observer'
+require 'helperclasses'
 
 module Network
   extend HelperClasses::DPuts
@@ -7,6 +8,7 @@ module Network
 
     attr_accessor :devices, :present
     extend HelperClasses::DPuts
+    extend HelperClasses::System
     extend self
     extend Observable
 
@@ -21,6 +23,7 @@ module Network
     @present = []
 
     def env_to_dev(subs, env, catchpath = false)
+      #dputs_func
       sysenv = "/sys/#{env}"
       path = catchpath ? ".*/#{env.sub(/^.*\//, '')}" : sysenv
       dputs(3) { "udev-change: #{subs.inspect}, #{sysenv} - path = #{path}" }
@@ -44,6 +47,7 @@ module Network
     end
 
     def add(dev)
+      #dputs_func
       newdev = nil
       HelperClasses::System.rescue_all do
         dputs(3) { "Checking whether we find #{dev}" }
@@ -68,6 +72,7 @@ module Network
     end
 
     def del(dev)
+      #dputs_func
       @present.each { |d|
         if d.check_me(dev)
           log_msg :Listener, "Deleting device #{d.dev.inspect}"

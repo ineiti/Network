@@ -7,9 +7,9 @@ Kernel.system("echo device_udev: #{ARGV.inspect} >> /tmp/dudev")
 
 case ARGV.first
   when /add/
-    Kernel.system("echo adding >> /tmp/dudev")
+    Kernel.system('echo adding >> /tmp/dudev')
     dev.add_udev(*ARGV[1..2])
   when /del/
-    Kernel.system("echo deleting >> /tmp/dudev")
+    Kernel.system('echo deleting >> /tmp/dudev')
     dev.del_udev(*ARGV[1..2])
 end
