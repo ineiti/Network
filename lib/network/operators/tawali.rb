@@ -1,27 +1,16 @@
 module Network
   module Operator
     class Tawali < Stub
-      def credit_left
+      attr_accessor :device, :credit_left, :internet_left
 
+      def initialize(device)
+        super( device )
+        @credit_left = 100
+        @internet_left = 100_000_000
       end
 
-      def credit_add
-
-      end
-
-      def credit_send
-
-      end
-
-      def internet_left
-
-      end
-
-      def internet_add
-
-      end
-
-      def internet_cost
+      def name
+        :Tawali
       end
     end
   end
