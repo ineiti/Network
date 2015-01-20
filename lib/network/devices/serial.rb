@@ -12,6 +12,7 @@ module Network
 
       @ids = [{bus: 'usb', uevent: {product: '12d1.1506.102'}, dirs: ['ep_01']},
               {bus: 'usb', uevent: {product: '12d1/14ac'}},
+              {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
               {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
 
       def initialize(dev)
@@ -19,24 +20,32 @@ module Network
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
-        @netctl_dev = 'umts'
-        @network_dev = 'ppp0'
-        @thread_operator = Thread.new {
-          rescue_all {
-            (1..10).each { |i|
-              dputs(3) { "Searching operator #{i}" }
-              if @operator = Operator.search_name(get_operator, self)
-                rescue_all do
-                  log_msg :Serial, "Got new operator #{@operator}"
-                  changed
-                  notify_observers(:operator)
+        if dev._uevent._product =~ /19d2.fff1.0/
+          @netctl_dev = 'cdma'
+          @network_dev = 'ppp0'
+          @operator = Operator.search_name(:Tawali, self)
+          changed
+          notify_observers(:operator)
+        else
+          @netctl_dev = 'umts'
+          @network_dev = 'ppp0'
+          @thread_operator = Thread.new {
+            rescue_all {
+              (1..10).each { |i|
+                dputs(3) { "Searching operator #{i}" }
+                if @operator = Operator.search_name(get_operator, self)
+                  rescue_all do
+                    log_msg :Serial, "Got new operator #{@operator}"
+                    changed
+                    notify_observers(:operator)
+                  end
+                  break
                 end
-                break
-              end
-              sleep i*i
+                sleep i*i
+              }
             }
           }
-        }
+        end
       end
 
       def connection_start
@@ -80,6 +89,7 @@ module Network
       end
 
       def set_2g
+        dp "*****  SETTING TO 2G ***** #{caller.inspect}"
         set_connection_type('2go')
       end
 

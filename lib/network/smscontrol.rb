@@ -47,6 +47,7 @@ module Network
             log_msg :SMScontrol, "Lost device #{@device}"
             @device.delete_observer(self)
             @device = @operator = nil
+            @state_goal = UNKNOWN
           end
         when /add/
           if !@device && dev
@@ -243,23 +244,16 @@ module Network
                 if do_autocharge? &&
                     !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
                   case sms._Content
-                    when /200.*cfa/i
-                      @state_goal = Device::DISCONNECTED
-                      log_msg :SMS, 'Getting internet-credit'
-                      @device.sms_send(100, 'internet')
-                      sleep 5
-                    when /350.*cfa/i
-                      @state_goal = Device::DISCONNECTED
-                      log_msg :SMS, 'Getting internet-credit'
-                      @device.sms_send(200, 'internet')
-                      sleep 5
-                    when /850.*cfa/i
-                      @state_goal = Device::DISCONNECTED
-                      log_msg :SMS, 'Getting internet-credit'
-                      @device.sms_send(1111, 'internet')
-                      sleep 5
+                    when /valeur transferee ([0-9]*) CFA/i
+                      cfas = $1
+                      log_msg :SMScontrol, "Got #{cfas} CFAs"
+                      if do_autocharge?
+                        recharge_all(cfas)
+                      else
+                        log_msg :SMScontrol, 'Not recharging, waiting for more...'
+                      end
                     when /souscription reussie/i
-                      log_msg :SMS, 'Asking credit'
+                      log_msg :SMS, 'Making connection'
                       make_connection
                   end
                 end

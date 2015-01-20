@@ -4,9 +4,17 @@ module Network
       attr_accessor :device, :credit_left, :internet_left
 
       def initialize(device)
-        super( device )
+        super(device)
         @credit_left = 100
         @internet_left = 100_000_000
+      end
+
+      def update_credit_left
+
+      end
+
+      def update_internet_left
+
       end
 
       def name
