@@ -150,6 +150,15 @@ module Network
       def name
         :Tigo
       end
+
+      def self.operator_match(n)
+        dp "#{n}"
+        n =~ /^(62203|tigo)/i
+      end
+
+      def has_promo
+        true
+      end
     end
   end
 end

@@ -16,30 +16,37 @@ module Network
               {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
 
       def initialize(dev)
+        dputs_func
         super(dev)
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
         if dev._uevent._product =~ /19d2.fff1.0/
+          dputs(3){'ZTE-modem'}
           @netctl_dev = 'cdma'
           @network_dev = 'ppp0'
           @operator = Operator.search_name(:Tawali, self)
           changed
           notify_observers(:operator)
         else
+          dputs(3){'Not ZTE-modem'}
           @netctl_dev = 'umts'
           @network_dev = 'ppp0'
           @thread_operator = Thread.new {
+            dputs(2){'Starting search for operator'}
             rescue_all {
               (1..10).each { |i|
                 dputs(3) { "Searching operator #{i}" }
-                if @operator = Operator.search_name(get_operator, self)
+                op_name = get_operator
+                if @operator = Operator.search_name(op_name, self)
                   rescue_all do
                     log_msg :Serial, "Got new operator #{@operator}"
                     changed
                     notify_observers(:operator)
                   end
                   break
+                else
+                  dputs(1){"Didn't find operator #{op_name}"}
                 end
                 sleep i*i
               }

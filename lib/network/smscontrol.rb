@@ -241,10 +241,10 @@ module Network
                     end
                 end
               when :Tigo
-                if do_autocharge? &&
-                    !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
-                  case sms._Content
-                    when /valeur transferee ([0-9]*) CFA/i
+                case sms._Content
+                  when /valeur transferee ([0-9]*) CFA/i
+                    if do_autocharge? &&
+                        !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
                       cfas = $1
                       log_msg :SMScontrol, "Got #{cfas} CFAs"
                       if do_autocharge?
@@ -252,10 +252,10 @@ module Network
                       else
                         log_msg :SMScontrol, 'Not recharging, waiting for more...'
                       end
-                    when /souscription reussie/i
-                      log_msg :SMS, 'Making connection'
-                      make_connection
-                  end
+                    end
+                  when /souscription reussie/i
+                    log_msg :SMS, 'Making connection'
+                    make_connection
                 end
             end
           end

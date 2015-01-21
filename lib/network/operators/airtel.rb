@@ -58,8 +58,8 @@ module Network
         else
           case code
             when '*137#'
-              if left = str.match(/PPL\s*([0-9\.]+)*\s*F/)
-                @credit_left = left[1].to_i
+              if left = str.match(/(Solde principal|PPL)\s*([0-9\.]+)*\s*F/)
+                @credit_left = left[2].to_i
                 dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
               end
             when /^\*136/
