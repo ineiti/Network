@@ -15,7 +15,7 @@ module Network
         }
           @serial.add_observer(self)
           @operator = @serial.operator
-          dputs(2) { "And found #{@operator.inspect} for #{@serial}" }
+          dputs(2) { "And found #{@operator} for #{@serial}" }
         end
       end
 
