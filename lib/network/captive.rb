@@ -344,7 +344,7 @@ module Network
       iptables '-Z FCAPTIVE'
     end
 
-    def delete_chain(par, ch, table = nil)
+    def reset_chain(par, ch, table = nil)
       chain = ch.to_s
       ipt = table ? "-t #{table}" : ''
       if iptables(ipt, '-L', par, '-n').index(chain)
@@ -367,16 +367,16 @@ module Network
         @operator = dev.operator
       end
 
-      delete_chain :PREROUTING, :NOCAPTIVE, :nat
-      delete_chain :PREROUTING, :CAPTIVE, :nat
+      reset_chain :PREROUTING, :NOCAPTIVE, :nat
+      reset_chain :PREROUTING, :CAPTIVE, :nat
 
-      delete_chain nil, :INTERNET, :nat
+      reset_chain nil, :INTERNET, :nat
       if @http_proxy
         ipnat "-A INTERNET -p tcp --dport 80 -j DNAT --to-dest #{@http_proxy}"
       end
       ipnat '-A INTERNET -j ACCEPT'
 
-      delete_chain :FORWARD, :FCAPTIVE
+      reset_chain :FORWARD, :FCAPTIVE
       if @allow_free != :all
         iptables '-P FORWARD DROP'
       end
