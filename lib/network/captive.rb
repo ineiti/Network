@@ -191,7 +191,7 @@ module Network
     def var_int(name)
       val = self.send("#{name}") or return false
       self.send("#{name}=", val.to_i)
-      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
+      log dp("#{name} was #{val} and is #{self.send("#{name}").inspect}")
     end
 
     def clean_config
@@ -321,16 +321,17 @@ module Network
           log "Checking ip #{ip} - has #{packets} packets - " +
                   "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
           if packets == 0
-            if (min = @ips_idle[ip]) > 0
-              @ips_idle[ip] -= min.abs / min
+            if min = @ips_idle[ip]
               if @ips_idle[ip] == 0
                 log_ "No packets from #{ip} for #{@keep_idle_minutes}, kicking"
                 user_disconnect_ip ip
                 @ips_idle.delete ip
+              else
+                @ips_idle[ip] -= min.abs / min
               end
-              log "ips_idle is now #{@ips_idle.inspect}"
+              log_ "ips_idle for #{ip} is now #{@ips_idle.inspect}"
             else
-              log "#{ip} is idle, adding to list"
+              log_ "#{ip} is idle, adding to list for #{@keep_idle_minutes}"
               @ips_idle[ip] = @keep_idle_minutes
             end
           else
@@ -355,7 +356,7 @@ module Network
       end
       iptables ipt, "-N #{chain}"
       if par
-        iptables ipt, "-I #{par.to_s} -j #{chain}"
+        iptables ipt, "-A #{par.to_s} -j #{chain}"
       end
     end
 
@@ -493,9 +494,10 @@ module Network
 
     def user_keep(n, min)
       name = n.to_s
+      log "user_keep #{n} for #{min} - #{@users_conn.inspect}"
       return unless ip = @users_conn[name]
       if @ips_idle.has_key?(ip) && @ips_idle[ip] > 0
-        log "Keeping #{name} from #{ip} for #{min} minutes"
+        log "Keeping #{name} from #{ip} for #{min.inspect} minutes"
         @ips_idle[ip] = -min
       end
     end
