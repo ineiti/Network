@@ -56,12 +56,6 @@ module Network
         end
       end
 
-      def not_all
-        changed
-        log_msg :Serial, "Telling observers #{self.count_observers}"
-        notify_observers(:operator)
-      end
-
       def update(op, dev = nil)
         dp op
         dp dev

@@ -1,6 +1,8 @@
 module Network
   module Device
     class PPP < Stub
+      attr_accessor :serial
+
       @ids = [{class: 'net', uevent: {interface: 'ppp.*'}}]
 
       def initialize(dev)
@@ -22,6 +24,8 @@ module Network
           if @serial
             @operator = @serial.operator
             log_msg :PPP, "Found new operator: #{@operator}"
+            changed
+            notify_observers(:operator)
           else
             log_msg :PPP, 'Got new operator without @serial'
           end
