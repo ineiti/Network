@@ -42,6 +42,7 @@ module Network
                   rescue_all do
                     log_msg :Serial, "Got new operator #{@operator}"
                     changed
+                    log_msg :Serial, "Telling observers #{self.count_observers}"
                     notify_observers(:operator)
                   end
                   break
@@ -53,6 +54,17 @@ module Network
             }
           }
         end
+      end
+
+      def not_all
+        changed
+        log_msg :Serial, "Telling observers #{self.count_observers}"
+        notify_observers(:operator)
+      end
+
+      def update(op, dev = nil)
+        dp op
+        dp dev
       end
 
       def connection_start
