@@ -152,7 +152,6 @@ module Network
       end
 
       def self.operator_match(n)
-        dp "#{n}"
         n =~ /^(62203|tigo)/i
       end
 

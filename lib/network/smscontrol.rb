@@ -235,6 +235,7 @@ module Network
                     end
                   when /votre abonnement internet/,
                       /Vous avez achete le forfait/
+                    log_msg :SMScontrol, "Making sure we're connected"
                     if @state_goal != Device::CONNECTED
                       make_connection
                       log_msg :SMScontrol, 'Airtel - make connection'

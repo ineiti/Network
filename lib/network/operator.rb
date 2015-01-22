@@ -24,11 +24,11 @@ module Network
     @start_loaded = false
 
     def search_name(name, dev)
-      dputs_func
+      #dputs_func
       dputs(3) { "Looking for #{name}" }
       op = @operators.select { |k, v|
         dputs(3) { "Searching #{name} in #{k} - #{v.name.inspect}" }
-        dp v.operator_match(name)
+        v.operator_match(name)
         #name.to_s.downcase =~ /#{v.name.downcase}/
       }
       ret = op.size > 0 ? op.first.last.new(dev) : nil
@@ -101,7 +101,9 @@ module Network
       end
 
       def self.operator_match(n)
-        n.to_s.downcase == self.name.downcase
+        name = self.name.gsub(/^.*::/, '').downcase
+        dp "#{n.to_s.downcase} <-> #{name.inspect}"
+        n.to_s.downcase == name
       end
     end
   end
