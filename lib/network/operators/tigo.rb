@@ -89,7 +89,7 @@ module Network
 
       def update_credit_left(force = false)
         if (force || !@last_credit) ||
-            (Time.now - @last_credit > 60 &&
+            (Time.now - @last_credit > 300 &&
                 @device.connection_status == Device::CONNECTED) ||
             (Time.now - @last_credit > 3600 &&
                 @device.connection_status == Device::DISCONNECTED)
@@ -109,7 +109,7 @@ module Network
 
       def update_internet_left(force = false)
         if (force || !@last_traffic) ||
-            (Time.now - @last_traffic > 60 &&
+            (Time.now - @last_traffic > 300 &&
                 @device.connection_status == Device::CONNECTED) ||
             (Time.now - @last_traffic > 3600 &&
                 @device.connection_status == Device::DISCONNECTED)
