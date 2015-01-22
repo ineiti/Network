@@ -367,8 +367,8 @@ module Network
         @operator = dev.operator
       end
 
-      delete_chain :PREROUTING, :CAPTIVE, :nat
       delete_chain :PREROUTING, :NOCAPTIVE, :nat
+      delete_chain :PREROUTING, :CAPTIVE, :nat
 
       delete_chain nil, :INTERNET, :nat
       if @http_proxy
