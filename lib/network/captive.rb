@@ -47,7 +47,7 @@ module Network
     @operator = nil
     @device = nil
 
-    @iptables_wait = '-w'
+    @iptables_wait = ''
     @iptables_present = System.exists? 'iptables'
 
     @usage_daily = 0
@@ -321,7 +321,7 @@ module Network
           log "Checking ip #{ip} - has #{packets} packets - " +
                   "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
           if packets == 0
-            if min = @ips_idle[ip]
+            if (min = @ips_idle[ip]) > 0
               @ips_idle[ip] -= min.abs / min
               if @ips_idle[ip] == 0
                 log_ "No packets from #{ip} for #{@keep_idle_minutes}, kicking"

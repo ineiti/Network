@@ -102,7 +102,6 @@ module Network
 
       def self.operator_match(n)
         name = self.name.gsub(/^.*::/, '').downcase
-        dp "#{n.to_s.downcase} <-> #{name.inspect}"
         n.to_s.downcase == name
       end
     end
