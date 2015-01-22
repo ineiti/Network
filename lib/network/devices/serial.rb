@@ -16,7 +16,7 @@ module Network
               {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
 
       def initialize(dev)
-        dputs_func
+        #dputs_func
         super(dev)
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
