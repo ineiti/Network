@@ -194,9 +194,13 @@ module Network
     def recharge_all(cfas = 0)
       cfas == 0 and cfas = @operator.credit_left
       log_msg :SMScontrol, "Recharging for #{cfas}"
-      @operator.internet_add_cost(cfas)
-      @send_status = true
-      @state_now != Device::CONNECTED and @state_now = UNKNOWN
+      if cfas >= @operator.internet_cost_smallest
+        @operator.internet_add_cost(cfas)
+        @send_status = true
+        @state_now != Device::CONNECTED and @state_now = UNKNOWN
+      else
+        log_msg :SMScontrol, "#{cfas} is smaller than smallest internet-cost"
+      end
     end
 
     def check_sms
@@ -229,7 +233,7 @@ module Network
                     cfas = $1
                     log_msg :SMScontrol, "Got #{cfas} CFAs"
                     if do_autocharge?
-                      recharge_all(cfas)
+                      recharge_all(cfas.to_i + @operator.credit_left)
                     else
                       log_msg :SMScontrol, 'Not recharging, waiting for more...'
                     end
