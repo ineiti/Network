@@ -233,7 +233,7 @@ module Network
                     cfas = $1
                     log_msg :SMScontrol, "Got #{cfas} CFAs"
                     if do_autocharge?
-                      recharge_all(cfas.to_i + @operator.credit_left)
+                      recharge_all(cfas.to_i)
                     else
                       log_msg :SMScontrol, 'Not recharging, waiting for more...'
                     end
@@ -253,7 +253,7 @@ module Network
                         !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
                       log_msg :SMScontrol, "Got #{cfas} CFAs"
                       if do_autocharge?
-                        recharge_all(cfas)
+                        recharge_all(cfas.to_i)
                       else
                         log_msg :SMScontrol, 'Not recharging, waiting for more...'
                       end
