@@ -192,7 +192,7 @@ module Network
     end
 
     def recharge_all(cfas = 0)
-      cfas == 0 and cfas = @operator.credit_left
+      (cfas == 0 or !cfas) and cfas = @operator.credit_left
       log_msg :SMScontrol, "Recharging for #{cfas}"
       if cfas >= @operator.internet_cost_smallest
         @operator.internet_add_cost(cfas)
@@ -248,9 +248,9 @@ module Network
               when :Tigo
                 case sms._Content
                   when /valeur transferee ([0-9]*) CFA/i
+                    cfas = $1
                     if do_autocharge? &&
                         !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
-                      cfas = $1
                       log_msg :SMScontrol, "Got #{cfas} CFAs"
                       if do_autocharge?
                         recharge_all(cfas)
