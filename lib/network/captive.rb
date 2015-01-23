@@ -191,7 +191,7 @@ module Network
     def var_int(name)
       val = self.send("#{name}") or return false
       self.send("#{name}=", val.to_i)
-      log dp("#{name} was #{val} and is #{self.send("#{name}").inspect}")
+      log "#{name} was #{val} and is #{self.send("#{name}").inspect}"
     end
 
     def clean_config
@@ -383,13 +383,14 @@ module Network
 
       clear
 
+      @ip_list.clear
       ips_connected.each { |ip|
         log_ "Re-connecting #{ip}"
         ip_forward ip, true
       }
 
       if @restricted
-        log "Setting restrictions of #{@restricted.inspect}"
+        log_ "Setting restrictions of #{@restricted.inspect}"
         restriction_set @restricted
       end
     end
