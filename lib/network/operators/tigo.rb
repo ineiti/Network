@@ -70,6 +70,8 @@ module Network
                     bytes = (bytes.to_f * 10 ** exp).to_i
                 ddputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
                 @internet_left = bytes
+              elsif str =~ /pas de promotions/
+                @internet_left = 0
               end
             when /^\*123/
               update_credit_left(true)
