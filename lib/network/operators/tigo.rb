@@ -68,7 +68,7 @@ module Network
                 @internet_left = -1 unless (bytes && mult)
                 (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                     bytes = (bytes.to_f * 10 ** exp).to_i
-                ddputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
+                dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
                 @internet_left = bytes
               elsif str =~ /pas de promotions/
                 @internet_left = 0
