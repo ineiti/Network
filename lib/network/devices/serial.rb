@@ -10,11 +10,12 @@ module Network
       include SerialModem
       include Observable
 
-      @ids = [{bus: 'usb', uevent: {product: '12d1.1506.102'}, dirs: ['ep_01']},
-              {bus: 'usb', uevent: {product: '12d1.1506.102'}, dirs: ['ep_02']},
-              {bus: 'usb', uevent: {product: '12d1/14ac'}},
-              {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
-              {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
+      #@ids = [{bus: 'usb', uevent: {product: '12d1.1506.102'}, dirs: ['ep_01']},
+      #        {bus: 'usb', uevent: {product: '12d1.1506.102'}, dirs: ['ep_02']},
+      #        {bus: 'usb', uevent: {product: '12d1/14ac'}},
+      #        {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
+      #        {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
+      @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs: ['ttyUSB2']}]
 
       def initialize(dev)
         #dputs_func
@@ -23,18 +24,18 @@ module Network
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
         if dev._uevent._product =~ /19d2.fff1.0/
-          dputs(3){'ZTE-modem'}
+          dputs(3) { 'ZTE-modem' }
           @netctl_dev = 'cdma'
           @network_dev = 'ppp0'
           @operator = Operator.search_name(:Tawali, self)
           changed
           notify_observers(:operator)
         else
-          dputs(3){'Not ZTE-modem'}
+          dputs(3) { 'Not ZTE-modem' }
           @netctl_dev = 'umts'
           @network_dev = 'ppp0'
           @thread_operator = Thread.new {
-            dputs(2){'Starting search for operator'}
+            dputs(2) { 'Starting search for operator' }
             rescue_all {
               (1..10).each { |i|
                 dputs(3) { "Searching operator #{i}" }
@@ -48,7 +49,7 @@ module Network
                   end
                   break
                 else
-                  dputs(1){"Didn't find operator #{op_name}"}
+                  dputs(1) { "Didn't find operator #{op_name}" }
                 end
                 sleep i*i
               }
