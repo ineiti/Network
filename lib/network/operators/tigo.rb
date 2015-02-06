@@ -62,7 +62,7 @@ module Network
                 @credit_left = left[1].to_i
               end
             when '*128#'
-              dp "Got string #{str}"
+              dputs(2) { "Got string #{str}" }
               if left = str.match(/([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[1].split
                 @internet_left = -1 unless (bytes && mult)
@@ -123,7 +123,7 @@ module Network
 
       def internet_add(volume)
         cr = @@credit.find { |c| c._volume == volume } or return nil
-        dputs(2){"Asking for credit #{cr._code} for volume #{volume}"}
+        dputs(2) { "Asking for credit #{cr._code} for volume #{volume}" }
         @device.sms_send(cr._code, 'kattir')
       end
 
