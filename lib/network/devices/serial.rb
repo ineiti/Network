@@ -59,8 +59,8 @@ module Network
       end
 
       def update(op, dev = nil)
-        dp op
-        dp dev
+        dputs(2) { op }
+        dputs(2) { dev }
       end
 
       def connection_start

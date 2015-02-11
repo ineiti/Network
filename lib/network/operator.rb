@@ -94,6 +94,10 @@ module Network
         end
       end
 
+      def internet_cost_available
+        internet_cost.select { |c, v| c <= @credit_left }.sort_by { |c, v| c.to_i }
+      end
+
       def self.inherited(other)
         dputs(2) { "Inheriting operator #{other.inspect}" }
         Operator.operators[other.to_s.sub(/.*::/, '')] = other

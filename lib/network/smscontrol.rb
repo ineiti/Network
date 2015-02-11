@@ -192,6 +192,7 @@ module Network
     end
 
     def recharge_all(cfas = 0)
+      return unless @operator
       (cfas == 0 or !cfas) and cfas = @operator.credit_left
       log_msg :SMScontrol, "Recharging for #{cfas}"
       if cfas >= @operator.internet_cost_smallest

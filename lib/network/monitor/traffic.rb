@@ -146,7 +146,7 @@ module Network
         ld @hosts.join(':')
         labels = @bw ? 'bw_min:bw_max:total:' : ''
         labels += (@vlans.collect { |v| "vlan#{v}" } +
-               @hosts.collect { |h| "host#{h}" }).join(':')
+            @hosts.collect { |h| "host#{h}" }).join(':')
         System.run_str("rrdtool update #{@db} -t #{labels} N:#{data.join(':')}")
         graph_traffic
         total = 0
@@ -157,9 +157,9 @@ module Network
       end
 
       def run_measure
-        @thread = Thread.new{
+        @thread = Thread.new {
           loop do
-            dp "Measuring and graphing at #{Time.now.to_s}"
+            dputs(2) { "Measuring and graphing at #{Time.now.to_s}" }
             measure
             sleep 20
           end
