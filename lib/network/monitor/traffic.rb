@@ -2,6 +2,7 @@
 require 'helperclasses'
 require 'fileutils'
 require 'tmpdir'
+require_relative 'traffic_user'
 
 module Network
   module Monitor
@@ -111,9 +112,29 @@ module Network
         }
       end
 
+      def iptables(*args)
+        System.run_str("iptables -w #{args.join(' ')}")
+      end
+
+      def ipt(*args)
+        iptables("-t #{@table} #{args.join(' ')}")
+      end
+
+      def measure_hosts
+        values = ipt('-L POST_COUNT -nvx').split("\n")
+        @hosts.collect { |h|
+          host = h.to_sym
+          [host, values.select { |val|
+            val =~ / #{@config._host_ips[host]} /
+          }.map { |val|
+            val.split[1].to_i
+          }]
+        }.to_h
+      end
+
       def measure
         #values = %x[ iptables -t #{table} -L POST_COUNT -nvx | grep -v 172.16.0.1 ].splitn
-        values = System.run_str("iptables -t #{table} -L POST_COUNT -nvx").split("\n")
+        values = ipt('-L POST_COUNT -nvx').split("\n")
         ld values.join("\n")
         data = []
         if @bw
@@ -140,15 +161,18 @@ module Network
           data.push bytes[1]
         }
 
-        ld "Updating #{Time.now}"
-        ld data.join(':')
-        ld @vlans.join(':')
-        ld @hosts.join(':')
-        labels = @bw ? 'bw_min:bw_max:total:' : ''
-        labels += (@vlans.collect { |v| "vlan#{v}" } +
-            @hosts.collect { |h| "host#{h}" }).join(':')
-        System.run_str("rrdtool update #{@db} -t #{labels} N:#{data.join(':')}")
-        graph_traffic
+        if @db != ''
+          ld "Updating #{Time.now}"
+          ld data.join(':')
+          ld @vlans.join(':')
+          ld @hosts.join(':')
+          labels = @bw ? 'bw_min:bw_max:total:' : ''
+          labels += (@vlans.collect { |v| "vlan#{v}" } +
+              @hosts.collect { |h| "host#{h}" }).join(':')
+          System.run_str("rrdtool update #{@db} -t #{labels} N:#{data.join(':')}")
+          graph_traffic
+        end
+
         total = 0
         start = @bw ? 3 : 0
         ld (vals = @old_values.zip(data)[start..-1].collect { |a, b| (b - a) * 8 / 10 }).join(':')
@@ -164,10 +188,6 @@ module Network
             sleep 20
           end
         }
-      end
-
-      def ipt(*args)
-        System.run_str("iptables -t #{@table} #{args.join(' ')}")
       end
 
       def create_iptables
@@ -196,10 +216,34 @@ module Network
           }
           ipt '-A', count, '-s 192.168.0.0/16 -d 192.168.0.0/16 -j RETURN'
           @hosts.each { |h|
-            ipt '-A', count, target, "#{config._host_ips[h.to_sym]} -j RETURN"
-            ipt '-A', count, target_other, "#{config._host_ips[h.to_sym]} -j RETURN"
+            ipt '-A', count, target, config._host_ips[h.to_sym]
+            ipt '-A', count, target_other, config._host_ips[h.to_sym]
           }
         }
+      end
+
+      def ip_add(ip, name)
+        return if @hosts.index name
+        config._host_ips[name.to_sym] = ip
+        @hosts.push name
+        [%w( PRE -i -d ),
+         %w( POST -o -s )].each { |prefix, dir, target|
+          target_other = (target == '-d') ? '-s' : '-d'
+          ipt '-A', count, target, ip
+          ipt '-A', count, target_other, ip
+        }
+      end
+
+      def ip_del(ip)
+        return unless name = config._host_ips.key(ip)
+        [%w( PRE -i -d ),
+         %w( POST -o -s )].each { |prefix, dir, target|
+          target_other = (target == '-d') ? '-s' : '-d'
+          ipt '-D', count, target, ip
+          ipt '-D', count, target_other, ip
+        }
+        config._host_ips.delete(name)
+        @hosts.delete name
       end
     end
   end

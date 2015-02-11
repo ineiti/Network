@@ -19,7 +19,7 @@ module Network
       @send_status = false
       @send_connected = false
       @state_error = 0
-      @min_traffic = 100000
+      @min_traffic = 100_000
       @traffic_goal = 0
       @recharge_hold = false
       @sms_injected = []

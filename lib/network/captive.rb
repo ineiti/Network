@@ -132,8 +132,8 @@ module Network
     def mac_deny(mac)
       if iptables '-L FCAPTIVE -n' =~ mac
         mac_ipt="-m mac --mac-source #{mac}"
-        iptables "-I FCAPTIVE #{mac_ipt} -j ACCEPT"
-        ipnat "-I CAPTIVE #{mac_ipt} -j INTERNET"
+        iptables "-D FCAPTIVE #{mac_ipt} -j ACCEPT"
+        ipnat "-D CAPTIVE #{mac_ipt} -j INTERNET"
       end
     end
 
@@ -215,7 +215,9 @@ module Network
     def clear
       log_ 'Clearing IPs and refreshing MACs'
       ipnat '-F CAPTIVE'
+      ipnat '-F NOCAPTIVE'
       iptables '-F FCAPTIVE'
+      iptables '-F NOFCAPTIVE'
 
       @allow_dhcp ||= %w( 255.255.255.255 )
       if System.exists? 'ip'
@@ -231,15 +233,15 @@ module Network
       (allow_dhcp + internal_ips + allow_dst).each { |ip|
         log "Allowing requests to #{ip} to go through"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
-        iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
+        iptables "-A NOFCAPTIVE -d #{ip} -j ACCEPT"
       }
 
       @allow_src_direct.each { |ip|
         log "Allowing requests from #{ip} to go through"
         ipnat "-A NOCAPTIVE -s #{ip} -j ACCEPT"
         ipnat "-A NOCAPTIVE -d #{ip} -j ACCEPT"
-        iptables "-A FCAPTIVE -s #{ip} -j ACCEPT"
-        iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
+        iptables "-A NOFCAPTIVE -s #{ip} -j ACCEPT"
+        iptables "-A NOFCAPTIVE -d #{ip} -j ACCEPT"
       }
 
       if !@captive_dnat
@@ -254,24 +256,25 @@ module Network
         ipnat "-I CAPTIVE -j DNAT --to-dest #{@captive_dnat}"
       end
 
-      @ip_list.each { |ip|
-        log "Accepting IP #{ip}"
-        ip_accept ip, true
-      }
-      @mac_list.each { |mac|
-        log "Accepting mac #{mac}"
-        mac_accept mac
-      }
+      #@ip_list.each { |ip|
+      #  log "Accepting IP #{ip}"
+      #  ip_accept ip, true
+      #}
+      #@mac_list.each { |mac|
+      #  log "Accepting mac #{mac}"
+      #  mac_accept mac
+      #}
 
       @allow_src_proxy.each { |ip|
         log "Allowing requests from #{ip} to go through Proxy"
         ipnat "-A NOCAPTIVE -s #{ip} -j INTERNET"
         ipnat "-A NOCAPTIVE -d #{ip} -j INTERNET"
-        iptables "-A FCAPTIVE -s #{ip} -j ACCEPT"
-        iptables "-A FCAPTIVE -d #{ip} -j ACCEPT"
+        iptables "-A NOFCAPTIVE -s #{ip} -j ACCEPT"
+        iptables "-A NOFCAPTIVE -d #{ip} -j ACCEPT"
       }
 
       iptables '-A FCAPTIVE -j RETURN'
+      iptables '-A NOFCAPTIVE -j RETURN'
       log 'Finished cleaning up'
     end
 
@@ -376,6 +379,7 @@ module Network
       end
       ipnat '-A INTERNET -j ACCEPT'
 
+      reset_chain :FORWARD, :NOFCAPTIVE
       reset_chain :FORWARD, :FCAPTIVE
       if @allow_free != :all
         iptables '-P FORWARD DROP'
@@ -387,6 +391,10 @@ module Network
       ips_connected.each { |ip|
         log_ "Re-connecting #{ip}"
         ip_forward ip, true
+      }
+      @mac_list.each { |mac|
+        log "Accepting mac #{mac}"
+        mac_accept mac
       }
 
       if @restricted
