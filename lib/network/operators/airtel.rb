@@ -125,10 +125,6 @@ module Network
         }
       end
 
-      def internet_cost_smallest
-        internet_cost.sort.first.first
-      end
-
       def has_promo
         true
       end

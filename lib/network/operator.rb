@@ -94,10 +94,6 @@ module Network
         end
       end
 
-      def internet_cost_available
-        internet_cost.select { |c, v| c <= @credit_left }.sort_by { |c, v| c.to_i }
-      end
-
       def self.inherited(other)
         dputs(2) { "Inheriting operator #{other.inspect}" }
         Operator.operators[other.to_s.sub(/.*::/, '')] = other
@@ -107,6 +103,36 @@ module Network
       def self.operator_match(n)
         name = self.name.gsub(/^.*::/, '').downcase
         n.to_s.downcase == name
+      end
+
+      def has_promo
+        false
+      end
+
+      def update_internet_left(force = false)
+      end
+
+      def update_credit_left(force = false)
+      end
+
+      def internet_add(vol)
+        log :Operator, "Adding volume #{vol} to non-prepared operator"
+      end
+
+      def internet_add_cost(cost)
+        log :Operator, "Adding cost #{cost} to non-prepared operator"
+      end
+
+      def internet_cost
+        [[nil, nil]]
+      end
+
+      def internet_cost_available
+        internet_cost.select { |c, v| c <= @credit_left }.sort_by { |c, v| c.to_i }
+      end
+
+      def internet_cost_smallest
+        internet_cost.sort.first.first
       end
     end
   end
