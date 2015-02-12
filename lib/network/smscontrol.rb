@@ -40,7 +40,7 @@ module Network
     end
 
     def update(operation, dev = nil)
-      dputs(3) { "Updating #{operation} with device #{dev}" }
+      ddputs(3) { "Updating #{operation} with device #{dev}" }
       case operation
         when /del/
           if @device == dev

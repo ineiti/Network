@@ -208,6 +208,9 @@ module Network
         end
       end
 
+      def sms_scan
+      end
+
       def self.check_this(dev, attributes, dev_self = @dev)
         dputs(3) { "Checking #{dev} against device #{dev_self.inspect} in #{attributes.inspect}" }
         attributes.each { |a|
