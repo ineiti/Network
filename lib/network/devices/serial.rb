@@ -100,7 +100,8 @@ module Network
       end
 
       def ussd_list
-        @serial_ussd_results
+        @serial_ussd_results.reverse.collect{|u|
+          "#{u._time.to_s} - #{u._code}: #{u._result}"}.join("\n")
       end
 
       def set_2g
