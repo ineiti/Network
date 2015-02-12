@@ -132,6 +132,11 @@ module Network
       def name
         :Airtel
       end
+
+      def self.operator_match(n)
+        n =~ /^(62201|airtel)/i
+      end
+
     end
   end
 end

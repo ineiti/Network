@@ -40,7 +40,7 @@ module Network
     end
 
     def update(operation, dev = nil)
-      ddputs(3) { "Updating #{operation} with device #{dev}" }
+      dputs(3) { "Updating #{operation} with device #{dev}" }
       case operation
         when /del/
           if @device == dev
@@ -51,10 +51,14 @@ module Network
           end
         when /add/
           if !@device && dev
-            @device = dev
-            @operator = @device.operator
-            @device.add_observer(self)
-            log_msg :SMScontrol, "Got new device #{@device} with operator #{@operator}"
+            if dev.dev._uevent and dev.dev._uevent._driver == 'option'
+              @device = dev
+              @operator = @device.operator
+              @device.add_observer(self)
+              log_msg :SMScontrol, "Got new device #{@device} with operator #{@operator}"
+            else
+              log_msg :SMScontrol, "New device #{@device} has no option-driver"
+            end
           end
         when /operator/
           @operator = @device.operator

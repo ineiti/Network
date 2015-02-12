@@ -85,6 +85,7 @@ module Network
     end
 
     def file_to_hash(f)
+      return '' unless File.exists?(f)
       case IO.readlines(f).first
         when /=/
           IO.readlines(f).collect { |l|
