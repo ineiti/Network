@@ -27,21 +27,29 @@ module Network
 
       def new_sms(list, id)
         treated = false
-        if list[id][1] == '"CPTInternet"'
-          if str = list[id][4]
-            if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
-              bytes, mult = left[2].split
-              (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-                  bytes = (bytes.to_f * 10 ** exp).to_i
-              dputs(2) { "Got internet: #{bytes} :: #{str}" }
-              @internet_left = bytes.to_i
-              treated = true
-            elsif str =~ /Vous n avez aucun abonnement/
-              dputs(2) { "Got internet-none: 0 :: #{str}" }
-              @internet_left = 0
-              treated = true
+        case list[id][1]
+          when '"CPTInternet"'
+            if str = list[id][4]
+              if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
+                bytes, mult = left[2].split
+                (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
+                    bytes = (bytes.to_f * 10 ** exp).to_i
+                dputs(2) { "Got internet: #{bytes} :: #{str}" }
+                @internet_left = bytes.to_i
+                treated = true
+              elsif str =~ /Vous n avez aucun abonnement/
+                dputs(2) { "Got internet-none: 0 :: #{str}" }
+                @internet_left = 0
+                treated = true
+              end
             end
-          end
+          when '"192"'
+            if str = list[id][4]
+              if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
+                log_msg :Tigo, "Got credit #{left[1].inspect}"
+                @credit_left += left[1].to_i
+              end
+            end
         end
         if treated
           sleep 5
