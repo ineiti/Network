@@ -57,7 +57,7 @@ module Network
               @device.add_observer(self)
               log_msg :SMScontrol, "Got new device #{@device} with operator #{@operator}"
             else
-              log_msg :SMScontrol, "New device #{@device} has no option-driver"
+              log_msg :SMScontrol, "New device #{dev.dev._path} has no option-driver"
             end
           end
         when /operator/
