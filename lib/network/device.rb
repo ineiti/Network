@@ -224,10 +224,12 @@ module Network
             when /Array/
               d_self.each { |v| return false unless d_other.index(v) }
             when /Hash/
-              d_self.each { |k, v|
-                do_data = d_other.send("_#{k}")
-                dputs(4) { "Checking #{k.inspect}: #{do_data.inspect} against #{v.inspect}" }
-                return false unless do_data =~ /^#{v}$/ }
+              if d_other.class.to_s == 'Hash'
+                d_self.each { |k, v|
+                  do_data = d_other.send("_#{k}")
+                  dputs(4) { "Checking #{k.inspect}: #{do_data.inspect} against #{v.inspect}" }
+                  return false unless do_data =~ /^#{v}$/ }
+              end
             else
               return false unless d_self =~ /^#{d_other}$/
           end

@@ -23,6 +23,11 @@ module Network
         @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
         @internet_left = -1
         @credit_left = -1
+        # If there is not at least 50 CFAs left, Tigo will not connect!
+        @tigo_base_credit = 50
+        # If there is less than 25MB left, chances are that we need to reconnect
+        # every 500kB!
+        @device.connection_reset = {promotion: 25_000_000, transfer: 500_000}
       end
 
       def new_sms(list, id)
@@ -141,11 +146,12 @@ module Network
         costs = internet_cost.reverse.find { |c, v|
           cost >= c
         } and internet_add(costs.last)
+        @credit_left -= cost
       end
 
       def internet_cost
         @@credit.collect { |c|
-          [c._cost, c._volume]
+          [c._cost + @tigo_base_credit, c._volume]
         }
       end
 

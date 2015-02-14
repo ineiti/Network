@@ -47,8 +47,8 @@ module Network
             case str = list[id][4]
               when /^601:/
                 if credit = str.match(/transfere ([0-9]+) CFA/)
-                  dputs(2){"Got transfer of credit: #{credit} - #{list[id].inspect}"}
-                  @credit_left += credit.to_i
+                  dputs(2){"Got transfer of credit: #{credit[1]} - #{list[id].inspect}"}
+                  @credit_left += credit[1].to_i
                 end
             end
         end
@@ -72,7 +72,10 @@ module Network
                 dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
               end
             when /^\*136/
-              update_credit_left(true)
+              if left = str.match(/Vous avez recharge ([0-9]+) F/)
+                @credit_left += left[1].to_i
+                dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
+              end
             else
               case str
                 when /epuise votre forfait Internet/

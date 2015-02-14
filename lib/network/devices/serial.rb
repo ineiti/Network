@@ -5,6 +5,7 @@ require 'serialmodem'
 module Network
   module Device
     class Serial < Stub
+      attr_accessor :connection_reset
       include HelperClasses::DPuts
       include HelperClasses::System
       include SerialModem
@@ -23,6 +24,10 @@ module Network
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
+        # Some operators need to reset the connection if there is only a small
+        # amount of "promotion" left
+        @connection_reset = {promotion: 0, transfer: 0}
+        @promotion_left = 0
         if dev._uevent._product =~ /19d2.fff1.0/
           dputs(3) { 'ZTE-modem' }
           @netctl_dev = 'cdma'
@@ -55,6 +60,24 @@ module Network
               }
             }
           }
+          @thread_reset = Thread.new {
+            rescue_all {
+              loop do
+                dputs(3) { "cr is #{@connection_reset}" }
+                if @connection_reset._promotion > @promotion_left
+                  v = System.run_str("grep #{@network_dev} /proc/net/dev").
+                      sub(/^ */, '').split(/[: ]+/)
+                  rx, tx = v[1].to_i, v[9].to_i
+                  dputs(3) { "#{@network_dev}:#{v.inspect} - Tx: #{tx}, Rx: #{rx}" }
+                  if rx + tx > @connection_reset._transfer
+                    log_msg :Serial_reset, 'Resetting due to excessive download'
+                    connection_stop
+                  end
+                end
+                sleep 20
+              end
+            }
+          }
         end
       end
 
@@ -65,6 +88,12 @@ module Network
 
       def connection_start
         dputs(2) { 'Starting connection' }
+        @connection_status = CONNECTING
+        Kernel.system("netctl restart #{@netctl_dev}")
+      end
+
+      def connection_restart
+        dputs(2) { 'Restarting connection' }
         @connection_status = CONNECTING
         Kernel.system("netctl restart #{@netctl_dev}")
       end
@@ -100,8 +129,8 @@ module Network
       end
 
       def ussd_list
-        @serial_ussd_results.reverse.collect{|u|
-          "#{u._time} - #{u._code}: #{u._result}"}.join("\n")
+        @serial_ussd_results.reverse.collect { |u|
+          "#{u._time} - #{u._code}: #{u._result}" }.join("\n")
       end
 
       def set_2g
@@ -118,6 +147,11 @@ module Network
         if @thread_operator
           @thread_operator.kill
           @thread_operator.join
+          dputs(1) { 'Joined thread-operator' }
+        end
+        if @thread_reset
+          @thread_reset.kill
+          @thread_reset.join
           dputs(1) { 'Joined thread-operator' }
         end
         kill
