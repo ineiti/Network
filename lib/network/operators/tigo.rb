@@ -25,7 +25,7 @@ module Network
         @credit_left = -1
         # If there is not at least 50 CFAs left, Tigo will not connect!
         @tigo_base_credit = 50
-        @last_promotion = Static.get_name(:Tigo).data_str.to_i
+        @last_promotion = Entities.Statics.get(:Tigo).data_str.to_i
         # If there is less than 25MB left, chances are that we need to reconnect
         # every 500kB!
         limit_transfer([[3_000_000, 250_000],
@@ -36,7 +36,7 @@ module Network
       def last_promotion_set(value)
         log_msg :Tigo, "Updating last_promotion to #{value}"
         @last_promotion = value
-        Static.get_name(:Tigo).data_str = value
+        Entities.Statics.get(:Tigo).data_str = value
       end
 
       def new_sms(list, id)
@@ -54,6 +54,7 @@ module Network
               elsif str =~ /Vous n avez aucun abonnement/
                 dputs(2) { "Got internet-none: 0 :: #{str}" }
                 @internet_left = 0
+                last_promotion_set 0
                 treated = true
               end
             end
@@ -73,6 +74,7 @@ module Network
       end
 
       def new_ussd(code, str)
+        #dputs_func
         dputs(2) { "#{code} - #{str.inspect}" }
         if str =~ /Apologies, there has been a system error./
           log_msg :Airtel, "Saw apologies-message for #{code} - retrying"
@@ -95,7 +97,8 @@ module Network
                 if @last_promotion <= 0
                   last_promotion_set bytes
                 end
-              elsif str =~ /pas de promotions/
+              elsif str =~ /pas de promotions/ || str =~ /SMS KATTIR/
+                dputs(3){'Setting internet-left to 0'}
                 @internet_left = 0
                 last_promotion_set 0
               end

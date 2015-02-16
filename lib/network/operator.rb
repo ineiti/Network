@@ -78,12 +78,12 @@ module Network
       def limit_transfer(pt)
         @thread_reset = Thread.new {
           rescue_all {
-            dputs_func
+            #dputs_func
             while @device do
               if @last_promotion > 0
                 pt.find { |promotion, limit|
                   if promotion >= @last_promotion
-                    dputs(3) { "#{promotion}:#{limit} - #{@internet_left}" }
+                    dputs(3) { "#{promotion}:#{limit}:#{@last_promotion} - #{@internet_left}" }
                     v = System.run_str("grep '#{@device.network_dev}' /proc/net/dev").
                         sub(/^ */, '').split(/[: ]+/)
                     rx, tx = v[1].to_i, v[9].to_i
