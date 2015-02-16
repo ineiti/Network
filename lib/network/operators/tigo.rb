@@ -25,33 +25,18 @@ module Network
         @credit_left = -1
         # If there is not at least 50 CFAs left, Tigo will not connect!
         @tigo_base_credit = 50
-        @last_promotion = -1
+        @last_promotion = Static.get_name(:Tigo).data_str.to_i
         # If there is less than 25MB left, chances are that we need to reconnect
         # every 500kB!
-        limit_transfer(25_000_000, 500_000)
+        limit_transfer([[3_000_000, 250_000],
+                        [15_000_000, 500_000],
+                        [25_000_000, 1_000_000]])
       end
 
-      def limit_transfer(promotion, transfer)
-        @thread_reset = Thread.new {
-          rescue_all {
-            dputs_func
-            while @device do
-              dputs(3) { "#{promotion}:#{transfer} - #{@internet_left}" }
-              if @last_promotion > 0 && promotion >= @last_promotion
-                v = System.run_str("grep '#{@device.network_dev}' /proc/net/dev").
-                    sub(/^ */, '').split(/[: ]+/)
-                rx, tx = v[1].to_i, v[9].to_i
-                dputs(3) { "#{@device.network_dev} - Tx: #{tx}, Rx: #{rx} - #{v.inspect}" }
-                if rx + tx > transfer
-                  log_msg :Serial_reset, 'Resetting due to excessive download'
-                  @device.connection_restart
-                end
-              end
-              sleep 20
-            end
-            log_msg :Serial_reset, 'Stopping reset-loop'
-          }
-        }
+      def last_promotion_set(value)
+        log_msg :Tigo, "Updating last_promotion to #{value}"
+        @last_promotion = value
+        Static.get_name(:Tigo).data_str = value
       end
 
       def new_sms(list, id)
@@ -107,11 +92,12 @@ module Network
                     bytes = (bytes.to_f * 10 ** exp).to_i
                 dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
                 @internet_left = bytes
-                if @last_promotion < 0
-                  @last_promotion = bytes
+                if @last_promotion <= 0
+                  last_promotion_set bytes
                 end
               elsif str =~ /pas de promotions/
                 @internet_left = 0
+                last_promotion_set 0
               end
             when /^\*123/
               update_credit_left(true)
@@ -166,7 +152,7 @@ module Network
         dputs(2) { "Asking for credit #{cr._code} for volume #{volume}" }
         @device.sms_send(cr._code, 'kattir')
         @credit_left -= cr._cost
-        @last_promotion = cr._volume
+        last_promotion_set cr._volume
       end
 
       def internet_add_cost(c)

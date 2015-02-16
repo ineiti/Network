@@ -66,13 +66,41 @@ module Network
       :has_promo, :user_cost_max
 =end
     class Stub
-      attr_accessor :connection_type
+      attr_accessor :connection_type, :last_promotion
       extend HelperClasses::DPuts
 
       def initialize(dev)
         @device = dev
         dev.add_observer(self)
         @connection_type = CONNECTION_ALWAYS
+      end
+
+      def limit_transfer(pt)
+        @thread_reset = Thread.new {
+          rescue_all {
+            dputs_func
+            while @device do
+              if @last_promotion > 0
+                pt.find { |promotion, limit|
+                  if promotion >= @last_promotion
+                    dputs(3) { "#{promotion}:#{limit} - #{@internet_left}" }
+                    v = System.run_str("grep '#{@device.network_dev}' /proc/net/dev").
+                        sub(/^ */, '').split(/[: ]+/)
+                    rx, tx = v[1].to_i, v[9].to_i
+                    dputs(3) { "#{@device.network_dev} - Tx: #{tx}, Rx: #{rx} - #{v.inspect}" }
+                    if rx + tx > limit
+                      log_msg :Serial_reset, 'Resetting due to excessive download'
+                      @device.connection_restart
+                    end
+                    true
+                  end
+                }
+              end
+              sleep 20
+            end
+            log_msg :Serial_reset, 'Stopping reset-loop'
+          }
+        }
       end
 
       def user_cost_max
