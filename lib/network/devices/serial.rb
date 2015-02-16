@@ -42,7 +42,7 @@ module Network
           @thread_operator = Thread.new {
             dputs(2) { 'Starting search for operator' }
             rescue_all {
-              (1..10).each { |i|
+              (1..11).each { |i|
                 dputs(3) { "Searching operator #{i}" }
                 op_name = get_operator
                 if @operator = Operator.search_name(op_name, self)
@@ -56,26 +56,8 @@ module Network
                 else
                   dputs(1) { "Didn't find operator #{op_name}" }
                 end
-                sleep i*i
+                sleep 2*i
               }
-            }
-          }
-          @thread_reset = Thread.new {
-            rescue_all {
-              loop do
-                dputs(3) { "cr is #{@connection_reset}" }
-                if @connection_reset._promotion > @promotion_left
-                  v = System.run_str("grep #{@network_dev} /proc/net/dev").
-                      sub(/^ */, '').split(/[: ]+/)
-                  rx, tx = v[1].to_i, v[9].to_i
-                  dputs(3) { "#{@network_dev}:#{v.inspect} - Tx: #{tx}, Rx: #{rx}" }
-                  if rx + tx > @connection_reset._transfer
-                    log_msg :Serial_reset, 'Resetting due to excessive download'
-                    connection_stop
-                  end
-                end
-                sleep 20
-              end
             }
           }
         end
@@ -147,11 +129,6 @@ module Network
         if @thread_operator
           @thread_operator.kill
           @thread_operator.join
-          dputs(1) { 'Joined thread-operator' }
-        end
-        if @thread_reset
-          @thread_reset.kill
-          @thread_reset.join
           dputs(1) { 'Joined thread-operator' }
         end
         kill

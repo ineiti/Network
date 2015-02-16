@@ -25,9 +25,33 @@ module Network
         @credit_left = -1
         # If there is not at least 50 CFAs left, Tigo will not connect!
         @tigo_base_credit = 50
+        @last_promotion = -1
         # If there is less than 25MB left, chances are that we need to reconnect
         # every 500kB!
-        @device.connection_reset = {promotion: 25_000_000, transfer: 500_000}
+        limit_transfer(25_000_000, 500_000)
+      end
+
+      def limit_transfer(promotion, transfer)
+        @thread_reset = Thread.new {
+          rescue_all {
+            dputs_func
+            while @device do
+              dputs(3) { "#{promotion}:#{transfer} - #{@internet_left}" }
+              if @last_promotion > 0 && promotion >= @last_promotion
+                v = System.run_str("grep '#{@device.network_dev}' /proc/net/dev").
+                    sub(/^ */, '').split(/[: ]+/)
+                rx, tx = v[1].to_i, v[9].to_i
+                dputs(3) { "#{@device.network_dev} - Tx: #{tx}, Rx: #{rx} - #{v.inspect}" }
+                if rx + tx > transfer
+                  log_msg :Serial_reset, 'Resetting due to excessive download'
+                  @device.connection_restart
+                end
+              end
+              sleep 20
+            end
+            log_msg :Serial_reset, 'Stopping reset-loop'
+          }
+        }
       end
 
       def new_sms(list, id)
@@ -83,6 +107,9 @@ module Network
                     bytes = (bytes.to_f * 10 ** exp).to_i
                 dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
                 @internet_left = bytes
+                if @last_promotion < 0
+                  @last_promotion = bytes
+                end
               elsif str =~ /pas de promotions/
                 @internet_left = 0
               end
@@ -138,6 +165,8 @@ module Network
         cr = @@credit.find { |c| c._volume == volume } or return nil
         dputs(2) { "Asking for credit #{cr._code} for volume #{volume}" }
         @device.sms_send(cr._code, 'kattir')
+        @credit_left -= cr._cost
+        @last_promotion = cr._volume
       end
 
       def internet_add_cost(c)
@@ -146,7 +175,6 @@ module Network
         costs = internet_cost.reverse.find { |c, v|
           cost >= c
         } and internet_add(costs.last)
-        @credit_left -= cost
       end
 
       def internet_cost

@@ -166,7 +166,7 @@ module Network
     class Stub
       include HelperClasses::DPuts
       extend HelperClasses::DPuts
-      attr_reader :dev, :ids, :operator
+      attr_reader :dev, :ids, :operator, :network_dev
       include Observable
 
       @ids = []
