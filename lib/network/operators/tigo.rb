@@ -41,6 +41,7 @@ module Network
 
       def new_sms(list, id)
         treated = false
+        log_msg :Tigo, "Incoming SMS: #{list[id].inspect}"
         case list[id][1]
           when '"CPTInternet"'
             if str = list[id][4]
@@ -58,11 +59,15 @@ module Network
                 treated = true
               end
             end
-          when '"192"'
+          else
+            dp 'else-while'
             if str = list[id][4]
               if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
                 log_msg :Tigo, "Got credit #{left[1].inspect}"
                 @credit_left += left[1].to_i
+              elsif int = str.match(/Souscription reussie:.* ([0-9]+)\s*([MG]B)/)
+                @internet_left += str_to_internet(int[1], int[2])
+                log_msg :Tigo, "Got internet #{int.inspect}: #{@internet_left}"
               end
             end
         end
@@ -71,6 +76,13 @@ module Network
           #@device.serial_sms_to_delete.push id
           @device.sms_delete id
         end
+      end
+
+      def str_to_internet(nbr, e)
+        (exp = {k: 3, M: 6, G: 9}[e.to_sym]) and
+            bytes = (nbr.to_f * 10 ** exp).to_i
+        dputs(3) { "Got #{nbr}::#{e} and deduced traffic #{bytes}" }
+        bytes
       end
 
       def new_ussd(code, str)
@@ -98,7 +110,7 @@ module Network
                   last_promotion_set bytes
                 end
               elsif str =~ /pas de promotions/ || str =~ /SMS KATTIR/
-                dputs(3){'Setting internet-left to 0'}
+                dputs(3) { 'Setting internet-left to 0' }
                 @internet_left = 0
                 last_promotion_set 0
               end
