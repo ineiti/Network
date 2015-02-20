@@ -47,7 +47,7 @@ module Network
     @operator = nil
     @device = nil
 
-    @iptables_wait = ''
+    @iptables_wait = '-w'
     @iptables_present = System.exists? 'iptables'
 
     @usage_daily = 0
@@ -284,25 +284,28 @@ module Network
       ipnat '-I CAPTIVE -j INTERNET'
     end
 
-    def packets_count(ip)
-      if packets = iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}[^0-9]/ }
-        packets.split.first.to_i
+    def iptables_count(ip, pos)
+      if packets = iptables('-L FCAPTIVE -nv').split("\n").select { |l| l =~ /#{ip}[^0-9]/ }
+        s = packets.collect { |p| p.split[pos] }.inject(0) { |c, i| c + i.to_i }
+        dputs(3) { "Sum for #{ip} with pos #{pos} in #{packets} is #{s}" }
+        s
       else
         0
       end
     end
 
+    def packets_count(ip)
+      iptables_count(ip, 0)
+    end
+
     def bytes_count(ip)
-      if packets = iptables('-L FCAPTIVE -nv').split("\n").find { |l| l =~ /#{ip}[^0-9]/ }
-        packets.split.first.to_i
-      else
-        0
-      end
+      iptables_count(ip, 1)
     end
 
 # This can be called from time to time to check on idle people
     def cleanup
       return if @cleanup_skip
+      dputs_func
 
       if @device.connection_status == Device::DISCONNECTED
         if ips_connected.length > 0
@@ -322,7 +325,7 @@ module Network
         ips_connected.each { |ip|
           packets = packets_count ip
           log "Checking ip #{ip} - has #{packets} packets - " +
-                  "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
+                   "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
           if packets == 0
             if min = @ips_idle[ip]
               if @ips_idle[ip] == 0
@@ -501,11 +504,11 @@ module Network
       10
     end
 
-    def user_keep(n, min)
+    def user_keep(n, min, force = false)
       name = n.to_s
-      log "user_keep #{n} for #{min} - #{@users_conn.inspect}"
+      log "user_keep #{n} for #{min} and forcing #{force} - #{@users_conn.inspect}"
       return unless ip = @users_conn[name]
-      if @ips_idle.has_key?(ip) && @ips_idle[ip] > 0
+      if @ips_idle.has_key?(ip) && (@ips_idle[ip] > 0 || force)
         log "Keeping #{name} from #{ip} for #{min.inspect} minutes"
         @ips_idle[ip] = -min
       end
