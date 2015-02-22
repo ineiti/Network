@@ -105,7 +105,7 @@ module Network
             args += [bw_defs, defs, bw_cdefs, cdefs].join(' ')
             args += " LINE1:0 #{lines} #{bw_lines}"
             # This is some obscure bug in Archlinux with regard to fonts
-            System.run_str('rm /var/cache/fontconfig/*')
+            #System.run_str('rm /var/cache/fontconfig/*')
             System.run_str(dp "rrdtool #{args}")
             File.chmod(0444, file)
             FileUtils.mkdir_p @imgs_dir
