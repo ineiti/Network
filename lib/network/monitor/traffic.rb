@@ -56,7 +56,7 @@ module Network
         }.join(' ')
 
         File.exists?(@db) and FileUtils.rm_f(@db)
-        System.run_str(dp "rrdtool create #{@db} --step 10 #{bw_int} #{counters} #{ranges}")
+        System.run_str("rrdtool create #{@db} --step 10 #{bw_int} #{counters} #{ranges}")
       end
 
       def ld(*args)
@@ -106,7 +106,7 @@ module Network
             args += " LINE1:0 #{lines} #{bw_lines}"
             # This is some obscure bug in Archlinux with regard to fonts
             #System.run_str('rm /var/cache/fontconfig/*')
-            System.run_str(dp "rrdtool #{args}")
+            System.run_str("rrdtool #{args}")
             File.chmod(0444, file)
             FileUtils.mkdir_p @imgs_dir
             FileUtils.mv file, "#{@imgs_dir}/#{png}"
