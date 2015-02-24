@@ -47,7 +47,7 @@ module Network
     @operator = nil
     @device = nil
 
-    @iptables_wait = '-w'
+    @iptables_wait = (System.run_str('iptables --help') =~ / -w /) ? '-w' : ''
     @iptables_present = System.exists? 'iptables'
 
     @usage_daily = 0
