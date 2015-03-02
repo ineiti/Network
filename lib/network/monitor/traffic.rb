@@ -25,6 +25,7 @@ module Network
 
         @vlans = @config._vlans || []
         @hosts = @config._hosts || []
+        @host_ips = config._host_ips || {}
         @bw = @config._bw || false
         @db = @config._db || 'traffic.rrd'
         @config._bw_upper ||= 1_000_000
@@ -127,7 +128,7 @@ module Network
         @hosts.collect { |h|
           host = h.to_sym
           [host, values.select { |val|
-            val =~ / #{@config._host_ips[host]} /
+            val =~ / #{@host_ips[host]} /
           }.map { |val|
             val.split[1].to_i
           }]
@@ -156,7 +157,7 @@ module Network
         }
         @hosts.each { |h|
           bytes = values.select { |val|
-            val =~ / #{@config._host_ips[h]} /
+            val =~ / #{@host_ips[h]} /
           }.map { |val|
             val.split[1] }.collect { |a| a.to_i }
           ld h, bytes.inspect
@@ -218,18 +219,20 @@ module Network
           }
           ipt '-A', count, '-s 192.168.0.0/16 -d 192.168.0.0/16 -j RETURN'
           @hosts.each { |h|
-            ipt '-A', count, target, config._host_ips[h.to_sym]
-            ipt '-A', count, target_other, config._host_ips[h.to_sym]
+            ipt '-A', count, target, @host_ips[h.to_sym]
+            ipt '-A', count, target_other, @host_ips[h.to_sym]
           }
         }
       end
 
       def ip_add(ip, name)
+        dp @hosts
         return if @hosts.index name
-        config._host_ips[name.to_sym] = ip
+        @host_ips[name.to_sym] = ip
         @hosts.push name
         [%w( PRE -i -d ),
          %w( POST -o -s )].each { |prefix, dir, target|
+          count="#{prefix}_COUNT"
           target_other = (target == '-d') ? '-s' : '-d'
           ipt '-A', count, target, ip
           ipt '-A', count, target_other, ip
@@ -237,14 +240,14 @@ module Network
       end
 
       def ip_del(ip)
-        return unless name = config._host_ips.key(ip)
+        return unless name = @host_ips.key(ip)
         [%w( PRE -i -d ),
          %w( POST -o -s )].each { |prefix, dir, target|
           target_other = (target == '-d') ? '-s' : '-d'
           ipt '-D', count, target, ip
           ipt '-D', count, target_other, ip
         }
-        config._host_ips.delete(name)
+        @host_ips.delete(name)
         @hosts.delete name
       end
     end
