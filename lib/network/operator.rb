@@ -152,7 +152,7 @@ module Network
       end
 
       def internet_cost
-        [[nil, nil]]
+        [[-1, nil]]
       end
 
       def internet_cost_available
