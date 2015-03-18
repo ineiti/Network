@@ -1,4 +1,5 @@
 require 'helperclasses/dputs'
+require 'json'
 
 module Network
   module Monitor
@@ -12,12 +13,18 @@ module Network
 
         attr_reader :traffic
 
-        def initialize
-          #@traffic = @invervals.collect{|i| Array.new(2*i){0}}
-          @traffic = {}
-          @last_update = Time.now
+        def initialize(traffic = {}, last_update = Time.now)
+          @traffic = traffic
+          @last_update = last_update
         end
 
+        # Add a new +host+ to the table and set all values to 0. The
+        # +traffic+ is an array of absolute values [rx, tx]. It holds
+        # the last interval and the current one, concatenated, so that
+        # one can easily extract up to the next intervals duration in
+        # the past.
+        #
+        # For debugging purposes you can give the +time+
         def traffic_init(host, traffic, time = Time.now)
           dputs(3) { "Initialising #{host}" }
           @traffic[host.to_sym] = {
@@ -32,6 +39,8 @@ module Network
           }
         end
 
+        # Updates the host +h+ with +traffic+ at time +time+. The
+        # +traffic+ is an array of absolute, increasing [rx, tx]-bytes
         def update_host(h, traffic, time = Time.now)
           #dputs_func
           host = h.to_sym
@@ -39,6 +48,9 @@ module Network
           last_time = @traffic[host]._last_time
           dputs(3) { "*** Updating at time #{time} from #{last_time}" }
           advanced = 0
+          if traffic_host._last_traffic.inject(:+) > traffic.inject(:+)
+            traffic_host._last_traffic = [0, 0]
+          end
           %i(sec min hour day month year).zip([0, 0, 0, 1, 1, 0]).reverse.
               each { |t, first|
             index, last_index = time.send(t) - first, last_time.send(t) - first
@@ -51,45 +63,94 @@ module Network
               advanced = (index + len - last_index) % len unless advanced > 0
             elsif advanced == 1
               th[0...len] = th[len..-1]
-              th[len..-1  ] = Array.new(len) { [0, 0] }
+              th[len..-1] = Array.new(len) { [0, 0] }
               advanced = 2 if index > 0
             elsif advanced >= 2
               th = Array.new(2 * len) { [0, 0] }
             end
-            dp "#{t}: #{advanced} - #{traffic} - #{traffic_host._last_traffic}"
+            dputs(3) { "#{t}: #{advanced} - #{traffic} - #{traffic_host._last_traffic}" }
             rxtx = traffic.zip(traffic_host._last_traffic).collect { |a, b| a - b }
             th[len+index] = th[len+index].zip(rxtx).collect { |a, b| a + b }
-            dp "#{len} - #{index} - #{rxtx} - #{th[len+index]}"
+            dputs(3) { "#{len} - #{index} - #{rxtx} - #{th[len+index]}" }
             traffic_host[t] = th
           }
           traffic_host._last_time = time
           traffic_host._last_traffic = traffic
         end
 
-        # Updates the counters for all hosts
+        # Updates the counters for all hosts. For debugging purposes
+        # you can pass +new_values+
         def update(new_values = nil)
-          dputs_func
+          #dputs_func
           if !new_values
             new_values = Traffic.measure_hosts
           end
-          dputs(3) { "New values: #{new_values}" }
-          new_values.each{ |h, t|
+          ddputs(3) { "New values: #{new_values}" }
+          new_values.each { |h, t|
             host = h.to_sym
-            dputs(3){"Host #{host} has #{t} traffic"}
+            dputs(3) { "Host #{host} has #{t} traffic" }
+            update_host host, t
           }
           dputs(3) { @traffic.inspect }
         end
 
-        # Serialize internal data
-        def to_json
+        # General get-range function
+        # +interval+:: sec, min, ..., year
+        # +size+:: the size of the interval
+        # +h+:: the host you're interested
+        # +s+:: where to start
+        # +range+:: how many elements
+        # +first_index+:: where the index starts
+        #
+        # If range is negative, it starts that many elements before. Don't
+        # ask more elements than "size" in advance, as they might not be there.
+        def get_range(interval, size, h, s, range, first_index = 0)
+          host = h.to_sym
+          return [0, 0] * range.abs unless t = @traffic[host]
+          start = s.send(interval.to_sym) - first_index
+          if range < 0
+            return t[interval.to_sym][size + start + range + 1..size + start]
+          else
+            return t[interval.to_sym][size + start...size + start + range]
+          end
+        end
 
+        # Gets the second-+range+ of host +h+, see #get_range
+        def get_sec(h, range = -60, time = Time.now)
+          get_range(:sec, 60, h, time, range)
+        end
+
+        # Gets the minute-+range+ of host +h+, see #get_range
+        def get_min(h, range = -60, time = Time.now)
+          get_range(:min, 60, h, time, range)
+        end
+
+        # Gets the hour-+range+ of host +h+, see #get_range
+        def get_hour(h, range = -24, time = Time.now)
+          get_range(:hour, 24, h, time, range)
+        end
+
+        # Gets the day-+range+ of host +h+, see #get_range
+        def get_day(h, range = -31, time = Time.now)
+          get_range(:day, 31, h, time, range, 1)
+        end
+
+        # Serialize internal data
+        def save_json
+          {traffic: @traffic,
+           last_update: @last_update}.to_json
         end
 
         # Take on where we left
-        def self.from_json
-
+        def self.from_json(str)
+          n = JSON.parse(str).to_sym
+          n._traffic = n._traffic.collect { |h, tr|
+            [h, tr.collect { |k, v|
+                [k, k == :last_time ? Time.parse(v) : v]
+              }.to_h]
+          }.to_h
+          User.new(n._traffic, Time.parse(n._last_update))
         end
-
       end
     end
   end

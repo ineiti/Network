@@ -6,7 +6,8 @@ include HelperClasses::DPuts
 
 def main
   #test_user
-  test_user_measure
+  #test_user_measure
+  test_json
 end
 
 def assert(cond, str = nil)
@@ -42,10 +43,36 @@ def test_user_measure
   Traffic.create_iptables
   user = Traffic::User.new
   user.update
-  dp user.traffic[:one]
+  dp user.get_sec(:one)
+  dp user.get_min(:one)
   sleep 5
   user.update
-  dp user.traffic[:one]
+  dp user.get_sec(:one)
+  dp user.get_min(:one)
+  sleep 5
+  user.update
+  dp user.get_sec(:one)
+  dp user.get_min(:one)
+end
+
+def test_json
+  Traffic.setup_config(hosts: %w(one two three), host_ips:
+                                                   {one: '192.168.1.146',
+                                                    two: '192.168.1.3',
+                                                    three: '192.168.1.120'},
+                       db: '')
+  Traffic.create_iptables
+  user = Traffic::User.new
+  user.update
+  sleep 3
+  user.update
+  dp user.get_sec(:one, -10)
+  json = user.save_json
+
+  sleep 3
+  user_new = Traffic::User.from_json(json)
+  user_new.update
+  dp user_new.get_sec(:one, -10)
 end
 
 main

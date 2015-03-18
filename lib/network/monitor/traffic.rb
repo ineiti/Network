@@ -125,7 +125,6 @@ module Network
 
       def measure_hosts
         values = ipt('-L POST_COUNT -nvx').split("\n")
-        ipt('-Z POST_COUNT')
         @hosts.collect { |h|
           host = h.to_sym
           [host, values.select { |val|
