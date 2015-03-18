@@ -3,13 +3,10 @@ require 'helperclasses/dputs'
 module Network
   module Monitor
     module Traffic
-      # This class holds data for all ip/vlans that are listed. For each listener,
-      # one class can be instantiated, so multiple listeners can poll the data at
-      # the interval of their wish
-      #
-      # 1) only implement diff and total
-      # 2) add intervals
-      # 3) serialize
+      # Holds all traffic for different hosts / nets / vlans
+      # The traffic is seperated into seconds/mins/.../years
+      # Every seperation holds the total during that time-period.
+      # Only the year-period is used modulo 10
       class User
         include HelperClasses::DPuts
 
@@ -69,33 +66,18 @@ module Network
           traffic_host._last_traffic = traffic
         end
 
-        # Updates the counters, both _diff_ and _total_
+        # Updates the counters for all hosts
         def update(new_values = nil)
           dputs_func
           if !new_values
             new_values = Traffic.measure_hosts
           end
-          dputs(3) { "New values: #{new_values}" }
-          Traffic.hosts.collect { |h|
-            dp host = h.to_sym
-            old = @traffic[host][0].unshift(new_values[host]).pop
+          ddputs(3) { "New values: #{new_values}" }
+          Traffic.measure_hosts{ |h, t|
+            host = h.to_sym
+            ddputs(3){"Host #{host} has #{t} traffic"}
           }
-          dputs(3) { @traffic.inspect }
-        end
-
-        # Returns the total of rx/tx-bytes
-        def total(name)
-          (t = @traffic[name.to_sym]) ? t[0].inject(:+) : 0
-        end
-
-        # Returns the diff to last 'update' rx/tx-bytes
-        def diff(name)
-          (t = @traffic[name.to_sym]) ? t[0].inject(:+) - t[1].inject(:+) : 0
-        end
-
-        # Returns rx/tx-bytes of _ip_ for the last _sec_onds
-        def time(name, sec)
-
+          ddputs(3) { @traffic.inspect }
         end
 
         # Serialize internal data

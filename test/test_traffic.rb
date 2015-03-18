@@ -42,12 +42,10 @@ def test_user_measure
   Traffic.create_iptables
   user = Traffic::User.new
   user.update
-  dp user.total(:one)
-  dp user.diff(:one)
+  dp user.traffic[:one]
   sleep 5
   user.update
-  dp user.total(:one)
-  dp user.diff(:one)
+  dp user.traffic[:one]
 end
 
 main
