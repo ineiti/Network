@@ -19,7 +19,7 @@ module Network
         end
 
         def traffic_init(host, traffic, time = Time.now)
-          ddputs(3) { "Initialising #{host}" }
+          dputs(3) { "Initialising #{host}" }
           @traffic[host.to_sym] = {
               sec: Array.new(60*2) { [0, 0] },
               min: Array.new(60*2) { [0, 0] },
@@ -33,7 +33,7 @@ module Network
         end
 
         def update_host(h, traffic, time = Time.now)
-          dputs_func
+          #dputs_func
           host = h.to_sym
           traffic_host = @traffic[host] || traffic_init(host, traffic, time)
           last_time = @traffic[host]._last_time
@@ -72,12 +72,12 @@ module Network
           if !new_values
             new_values = Traffic.measure_hosts
           end
-          ddputs(3) { "New values: #{new_values}" }
-          Traffic.measure_hosts{ |h, t|
+          dputs(3) { "New values: #{new_values}" }
+          new_values.each{ |h, t|
             host = h.to_sym
-            ddputs(3){"Host #{host} has #{t} traffic"}
+            dputs(3){"Host #{host} has #{t} traffic"}
           }
-          ddputs(3) { @traffic.inspect }
+          dputs(3) { @traffic.inspect }
         end
 
         # Serialize internal data
