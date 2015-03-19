@@ -85,7 +85,7 @@ module Network
           if !new_values
             new_values = Traffic.measure_hosts
           end
-          ddputs(3) { "New values: #{new_values}" }
+          dputs(3) { "New values: #{new_values}" }
           new_values.each { |h, t|
             host = h.to_sym
             dputs(3) { "Host #{host} has #{t} traffic" }
