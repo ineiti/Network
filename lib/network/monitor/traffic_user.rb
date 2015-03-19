@@ -69,7 +69,8 @@ module Network
               th = Array.new(2 * len) { [0, 0] }
             end
             dputs(3) { "#{t}: #{advanced} - #{traffic} - #{traffic_host._last_traffic}" }
-            rxtx = traffic.zip(traffic_host._last_traffic).collect { |a, b| a - b }
+            rxtx = traffic.zip(traffic_host._last_traffic).
+                collect { |a, b| a.to_i - b.to_i }
             th[len+index] = th[len+index].zip(rxtx).collect { |a, b| a + b }
             dputs(3) { "#{len} - #{index} - #{rxtx} - #{th[len+index]}" }
             traffic_host[t] = th
