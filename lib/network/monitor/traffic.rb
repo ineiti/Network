@@ -116,7 +116,14 @@ module Network
       end
 
       def iptables(*args)
-        System.run_str("iptables -w #{args.join(' ')}")
+        if !@ipt_cmd
+          @ipt_cmd = System.exists?('iptables') ? 'iptables' : ''
+        end
+        if @ipt_cmd != ''
+          System.run_str("iptables -w #{args.join(' ')}")
+        else
+          return ''
+        end
       end
 
       def ipt(*args)
@@ -128,10 +135,10 @@ module Network
         @hosts.collect { |h|
           host = h.to_sym
           [host, values.select { |val|
-            val =~ / #{@host_ips[host]} /
-          }.map { |val|
-            val.split[1].to_i
-          }]
+                 val =~ / #{@host_ips[host]} /
+               }.map { |val|
+                 val.split[1].to_i
+               }]
         }.to_h
       end
 
