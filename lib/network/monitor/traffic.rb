@@ -257,6 +257,12 @@ module Network
         @host_ips.delete(name)
         @hosts.delete name
       end
+
+      # Removes monitoring an IP for a given name
+      def ip_del_name(name)
+        return unless ip = @host_ips[name.to_sym]
+        ip_del(ip)
+      end
     end
   end
 end
