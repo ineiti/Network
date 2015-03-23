@@ -233,10 +233,9 @@ module Network
       end
 
       def ip_add(ip, name)
-        dp @hosts
         return if @hosts.index name
         @host_ips[name.to_sym] = ip
-        @hosts.push name
+        @hosts.push name.to_sym
         [%w( PRE -i -d ),
          %w( POST -o -s )].each { |prefix, dir, target|
           count="#{prefix}_COUNT"
@@ -250,6 +249,7 @@ module Network
         return unless name = @host_ips.key(ip)
         [%w( PRE -i -d ),
          %w( POST -o -s )].each { |prefix, dir, target|
+          count="#{prefix}_COUNT"
           target_other = (target == '-d') ? '-s' : '-d'
           ipt '-D', count, target, ip
           ipt '-D', count, target_other, ip
