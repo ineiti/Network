@@ -28,7 +28,8 @@ module Network
         @bw = @config._bw || false
         @db = @config._db || 'traffic.rrd'
         @config._bw_upper ||= 1_000_000
-        @table = 'mangle'
+        @table = @config._table || 'mangle'
+        @table_count = @config._table_count || 'COUNT'
         @old_values=[0] * ((@bw ? 3 : 0) + @vlans.length + @hosts.length)
         @imgs_dir = @config._imgs_dir || '/srv/http/traffic'
         @thread
@@ -123,7 +124,7 @@ module Network
       end
 
       def measure_hosts
-        values = ipt('-L POST_COUNT -nvx').split("\n")
+        values = ipt("-L POST_#{@table_count} -nvx").split("\n")
         @hosts.collect { |h|
           host = h.to_sym
           [host, values.select { |val|
@@ -136,7 +137,7 @@ module Network
 
       def measure
         #values = %x[ iptables -t #{table} -L POST_COUNT -nvx | grep -v 172.16.0.1 ].splitn
-        values = ipt('-L POST_COUNT -nvx').split("\n")
+        values = ipt("-L POST_#{@table_count} -nvx").split("\n")
         ld values.join("\n")
         data = []
         if @bw
@@ -199,7 +200,7 @@ module Network
          %w( POST -o -s )].each { |prefix, dir, target|
           target_other = (target == '-d') ? '-s' : '-d'
           mangle="#{prefix}ROUTING"
-          count="#{prefix}_COUNT"
+          count="#{prefix}_#{@table_count}"
           # Cleaning up
           if ipt('-L') =~ /#{count}/
             ld 'Cleaning up'
