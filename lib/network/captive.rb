@@ -1,5 +1,5 @@
 require 'helperclasses'
-require 'monitor/traffic'
+require 'network/monitor/traffic'
 
 module Network
   module Captive
