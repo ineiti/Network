@@ -35,6 +35,7 @@ require 'network/mail'
 require 'network/smscontrol'
 require 'network/monitor/ping'
 require 'network/monitor/traffic'
+require 'network/monitor/traffic_user'
 
 module Network
   extend self
