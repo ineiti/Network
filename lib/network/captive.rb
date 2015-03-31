@@ -1,4 +1,5 @@
 require 'helperclasses'
+require 'monitor/traffic'
 
 module Network
   module Captive
@@ -10,7 +11,7 @@ module Network
                   :allow_dhcp, :internal_ips, :allow_dst, :allow_src_direct,
                   :allow_src_proxy, :captive_dnat, :prerouting, :http_proxy,
                   :openvpn_allow_double, :allow_double, :cleanup_skip,
-                  :keep_idle_minutes
+                  :keep_idle_minutes, :traffic
 # Iptable-rules:
 # filter:FCAPTIVE - should be called at the end of the filter:FORWARD-table
 #   allows new users and finishes with a BLOCK
@@ -329,7 +330,7 @@ module Network
         ips_connected.each { |ip|
           packets = packets_count ip
           log "Checking ip #{ip} - has #{packets} packets - " +
-                   "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
+                  "keep_idle_minutes is #{@keep_idle_minutes.inspect}"
           if packets == 0
             if min = @ips_idle[ip]
               if @ips_idle[ip] == 0
@@ -408,6 +409,14 @@ module Network
         log_ "Setting restrictions of #{@restricted.inspect}"
         restriction_set @restricted
       end
+
+      Monitor::Traffic.setup_config
+      Monitor::Traffic.create_iptables
+      @traffic = Monitor::Traffic::User.new
+    end
+
+    def set_traffic(json)
+      @traffic = Monitor::Traffic::User.from_json json
     end
 
     def block(ip)
@@ -473,6 +482,7 @@ module Network
 
       same_ip and user_disconnect(same_ip, ip)
       ip_forward ip, true
+      Monitor::Traffic.ip_add(ip, name)
     end
 
     def user_disconnect_name(n)
@@ -500,6 +510,7 @@ module Network
       log_ "really disconnecting #{name.inspect} from #{ip}"
       @users_conn.delete name
       ip_forward ip, false
+      Monitor::Traffic.ip_del_name name
 
       @users_conn.length == 0 and @device and @device.connection_may_stop
     end
