@@ -119,9 +119,14 @@ module Network
       def iptables(*args)
         if !@ipt_cmd
           @ipt_cmd = System.exists?('iptables') ? 'iptables' : ''
+          @iptables_wait = if @iptables_present
+                             (System.run_str('iptables --help') =~ / -w /) ? '-w' : ''
+                           else
+                             ''
+                           end
         end
         if @ipt_cmd != ''
-          System.run_str("iptables -w #{args.join(' ')}")
+          System.run_str("iptables #{@iptables_wait} #{args.join(' ')}")
         else
           return ''
         end
@@ -210,7 +215,7 @@ module Network
           mangle="#{prefix}ROUTING"
           count="#{prefix}_#{@table_count}"
           # Cleaning up
-          if ipt('-L') =~ /#{count}/
+          if ipt('-L -n') =~ /#{count}/
             ld 'Cleaning up'
             ipt '-D', mangle, '-j', count
             ipt '-F', count
