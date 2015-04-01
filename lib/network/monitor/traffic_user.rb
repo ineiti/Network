@@ -92,6 +92,10 @@ module Network
             dputs(3) { "Host #{host} has #{t} traffic" }
             update_host host, t
           }
+          (@traffic.collect{|h,t| h} - new_values.collect{|h,t| h}).each{|h|
+            dputs(3){"Updating #{h} with 0 traffic"}
+            update_host h.to_sym, [0,0]
+          }
           dputs(3) { @traffic.inspect }
         end
 
