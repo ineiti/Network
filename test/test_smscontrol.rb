@@ -11,7 +11,7 @@ trap('SIGINT') {
 }
 
 catch :ctrl_c do
-  $smsc = SMScontrol.new
+  $smsc = MobileControl.new
 #$smsc.device.sms_send(99836457, 'test from Smileplug')
 #exit
   loop do
@@ -23,15 +23,15 @@ catch :ctrl_c do
 
   exit
 
-  SMScontrol.check_connection
-  puts SMScontrol.state_to_s
+  MobileControl.check_connection
+  puts MobileControl.state_to_s
 
-  SMScontrol.make_connection
-  puts SMScontrol.state_to_s
+  MobileControl.make_connection
+  puts MobileControl.state_to_s
 
-  while SMScontrol.state_now != MODEM_CONNECTED
+  while MobileControl.state_now != MODEM_CONNECTED
     sleep 10
-    SMScontrol.check_connection
-    puts SMScontrol.state_to_s
+    MobileControl.check_connection
+    puts MobileControl.state_to_s
   end
 end

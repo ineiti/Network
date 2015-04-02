@@ -2,7 +2,7 @@ require 'helperclasses'
 require 'erb'
 
 module Network
-  class SMScontrol
+  class MobileControl
     attr_accessor :state_now, :state_goal, :state_error,
                   :min_traffic, :device, :operator, :autocharge, :phone_main,
                   :recharge_hold
@@ -44,7 +44,7 @@ module Network
       case operation
         when /del/
           if @device == dev
-            log_msg :SMScontrol, "Lost device #{@device}"
+            log_msg :MobileControl, "Lost device #{@device}"
             @device.delete_observer(self)
             @device = @operator = nil
             @state_goal = UNKNOWN
@@ -55,16 +55,16 @@ module Network
               @device = dev
               @operator = @device.operator
               @device.add_observer(self)
-              log_msg :SMScontrol, "Got new device #{@device} with operator #{@operator}"
+              log_msg :MobileControl, "Got new device #{@device} with operator #{@operator}"
             else
-              log_msg :SMScontrol, "New device #{dev.dev._path} has no option-driver"
+              log_msg :MobileControl, "New device #{dev.dev._path} has no option-driver"
             end
           end
         when /operator/
           @operator = @device.operator
-          log_msg :SMScontrol, "Found operator #{@operator}"
+          log_msg :MobileControl, "Found operator #{@operator}"
         when /down/
-          log_msg :SMScontrol, "Downing device #{@device}"
+          log_msg :MobileControl, "Downing device #{@device}"
       end
     end
 
@@ -155,7 +155,7 @@ module Network
       if @state_goal != @state_now
         if @state_now == Device::ERROR_CONNECTION
           @state_error += 1
-          log_msg :SMScontrol, 'Connection Error - stopping'
+          log_msg :MobileControl, 'Connection Error - stopping'
           @device.connection_stop
           sleep 2
           #if @state_error > 5
@@ -163,7 +163,7 @@ module Network
           #end
         end
         if @state_goal == Device::DISCONNECTED
-          log_msg :SMScontrol, 'Goal is ::Disconnected'
+          log_msg :MobileControl, 'Goal is ::Disconnected'
           @device.connection_stop
         elsif @state_goal == Device::CONNECTED
           if @operator.internet_left < @min_traffic
@@ -198,13 +198,13 @@ module Network
     def recharge_all(cfas = 0)
       return unless @operator
       (cfas == 0 or !cfas) and cfas = @operator.credit_left
-      log_msg :SMScontrol, "Recharging for #{cfas}"
+      log_msg :MobileControl, "Recharging for #{cfas}"
       if cfas >= @operator.internet_cost_smallest
         @operator.internet_add_cost(cfas)
         @send_status = true
         @state_now != Device::CONNECTED and @state_now = UNKNOWN
       else
-        log_msg :SMScontrol, "#{cfas} is smaller than smallest internet-cost"
+        log_msg :MobileControl, "#{cfas} is smaller than smallest internet-cost"
       end
     end
 
@@ -236,18 +236,18 @@ module Network
                 case sms._Content
                   when /valeur transferee ([0-9]*) CFA/i
                     cfas = $1
-                    log_msg :SMScontrol, "Got #{cfas} CFAs"
+                    log_msg :MobileControl, "Got #{cfas} CFAs"
                     if do_autocharge?
                       recharge_all(cfas.to_i)
                     else
-                      log_msg :SMScontrol, 'Not recharging, waiting for more...'
+                      log_msg :MobileControl, 'Not recharging, waiting for more...'
                     end
                   when /votre abonnement internet/,
                       /Vous avez achete le forfait/
-                    log_msg :SMScontrol, "Making sure we're connected"
+                    log_msg :MobileControl, "Making sure we're connected"
                     if @state_goal != Device::CONNECTED
                       make_connection
-                      log_msg :SMScontrol, 'Airtel - make connection'
+                      log_msg :MobileControl, 'Airtel - make connection'
                     end
                 end
               when :Tigo
@@ -256,11 +256,11 @@ module Network
                     cfas = $1
                     if do_autocharge? &&
                         !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
-                      log_msg :SMScontrol, "Got #{cfas} CFAs"
+                      log_msg :MobileControl, "Got #{cfas} CFAs"
                       if do_autocharge?
                         recharge_all(cfas.to_i)
                       else
-                        log_msg :SMScontrol, 'Not recharging, waiting for more...'
+                        log_msg :MobileControl, 'Not recharging, waiting for more...'
                       end
                     end
                   when /souscription reussie/i
