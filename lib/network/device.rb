@@ -22,6 +22,13 @@ module Network
     @devices = {}
     @present = []
 
+    def install_system
+      bin_path = File.expand_path("../../bin", __FILE__)
+      FileUtils.cp "#{bin_path}/90-network-udev.rules", '/lib/udev/rules.d'
+      FileUtils.cp "#{bin_path}/device_udev", '/usr/local/bin'
+      FileUtils.cp "#{bin_path}/device_udev.rb", '/usr/local/bin'
+    end
+
     def env_to_dev(subs, env, catchpath = false)
       #dputs_func
       sysenv = "/sys/#{env}"

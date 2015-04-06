@@ -1,0 +1,14 @@
+#!/bin/bash
+
+DUDEV=/usr/local/bin/device_udev.rb
+LOG=/tmp/dudev.log
+
+date >> $LOG
+
+pidof ruby > /dev/null || exit
+echo Ruby here >> $LOG
+test -x $DUDEV || exit
+echo Dudev is here >> $LOG
+echo $@ >> $LOG
+
+$DUDEV $@
