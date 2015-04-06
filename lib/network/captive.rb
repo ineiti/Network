@@ -371,7 +371,7 @@ module Network
       end
     end
 
-    def setup(dev = nil)
+    def setup(dev = nil, traffic_str = '')
       if dev
         log_ "Setting up with #{dev.class.name} - #{dev.operator}"
         @device = dev
@@ -412,11 +412,11 @@ module Network
 
       Monitor::Traffic.setup_config
       Monitor::Traffic.create_iptables
-      @traffic = Monitor::Traffic::User.new
-    end
-
-    def set_traffic(json)
-      @traffic = Monitor::Traffic::User.from_json json
+      if traffic_str.to_s.length > 0
+        @traffic = Monitor::Traffic::User.from_json traffic_str
+      else
+        @traffic = Monitor::Traffic::User.new
+      end
     end
 
     def block(ip)
