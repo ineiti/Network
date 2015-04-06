@@ -1,5 +1,5 @@
 Gem::Specification.new do |s|
-  s.name        = 'network'
+  s.name        = 'Network'
   s.version     = '0.2.0'
   s.date        = '2015-04-06'
   s.summary     = "Network-internet access"
