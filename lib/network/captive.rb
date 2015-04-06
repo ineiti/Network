@@ -21,6 +21,7 @@ module Network
 # nat:INTERNET - redirects to the proxy or direct
 #   internet-access
 
+    @traffic = nil
     @prerouting = nil
     @http_proxy = nil
     @allow_dst = []
