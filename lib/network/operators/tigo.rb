@@ -28,6 +28,10 @@ module Network
         limit_transfer([[3_000_000, 250_000],
                         [15_000_000, 500_000],
                         [25_000_000, 1_000_000]])
+
+        # TODO: once serialmodem turns into a class, add an observer here
+        device.serial_sms_new.push(Proc.new { |sms| new_sms(sms) })
+        device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
       end
 
       def last_promotion_set(value)
@@ -45,11 +49,11 @@ module Network
               bytes, mult = left[2].split
               (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                   bytes = (bytes.to_f * 10 ** exp).to_i
-              dputs(2) { "Got internet: #{bytes} :: #{str}" }
+              dputs(3) { "Got internet: #{bytes} :: #{str}" }
               internet_total bytes.to_i
               treated = true
             elsif str =~ /Vous n avez aucun abonnement/
-              dputs(2) { "Got internet-none: 0 :: #{str}" }
+              dputs(3) { "Got internet-none: 0 :: #{str}" }
               internet_total 0
               last_promotion_set 0
               treated = true
@@ -69,9 +73,9 @@ module Network
 
       def new_ussd(code, str)
         #dputs_func
-        dputs(2) { "#{code} - #{str.inspect}" }
+        dputs(3) { "#{code} - #{str.inspect}" }
         if str =~ /Apologies, there has been a system error./
-          log_msg :Airtel, "Saw apologies-message for #{code} - retrying"
+          log_msg :Tigo, "Saw apologies-message for #{code} - retrying"
           ussd_send code
         else
           case code
@@ -81,7 +85,7 @@ module Network
               end
 
             when '*128#'
-              dputs(2) { "Got string #{str}" }
+              dputs(3) { "Got string #{str}" }
               if left = str.match(/([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[1].split
                 return unless (bytes && mult)
@@ -144,7 +148,7 @@ module Network
 
       def internet_add(volume)
         cr = @@credit.find { |c| c._volume == volume } or return nil
-        dputs(2) { "Asking for credit #{cr._code} for volume #{volume}" }
+        log_msg :Tigo, "Asking for credit #{cr._code} for volume #{volume}"
         @device.sms_send(cr._code, 'kattir')
         @credit_left -= cr._cost
         last_promotion_set cr._volume

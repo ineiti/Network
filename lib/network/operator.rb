@@ -77,18 +77,6 @@ module Network
         @connection_type = CONNECTION_ALWAYS
         @internet_left = Network::Operator.start_loaded ? 100_000_000 : -1
         @credit_left = -1
-
-        # TODO: once serialmodem turns into a class, add an observer here
-        @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
-        @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
-      end
-
-      def new_sms(sms)
-
-      end
-
-      def new_ussd(code, str)
-
       end
 
       # (credit|internet)_(added_total)
@@ -97,28 +85,36 @@ module Network
         @credit_left += add
         log_msg :Operator, "Added credit #{add}: #{@credit_left}"
         changed
-        notify_observers(:credit_added, add)
+        rescue_all {
+          notify_observers(:credit_added, add)
+        }
       end
 
       def credit_total(tot)
         @credit_left = tot
         log_msg :Operator, "Total credit #{@credit_left}"
         changed
-        notify_observers(:credit_added)
+        rescue_all {
+          notify_observers(:credit_total)
+        }
       end
 
       def internet_added(add)
         @internet_left += add
         log_msg :Operator, "Added internet #{int.inspect}: #{@internet_left}"
         changed
-        notify_observers(:internet_added, add)
+        rescue_all {
+          notify_observers(:internet_added, add)
+        }
       end
 
       def internet_total(tot)
         @internet_left = tot
-        log_msg :Operator, "Total internet #{@credit_left}"
+        log_msg :Operator, "Total internet #{@internet_left}"
         changed
-        notify_observers(:internet_added)
+        rescue_all {
+          notify_observers(:internet_total)
+        }
       end
 
       def str_to_internet(nbr, e)

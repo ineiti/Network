@@ -15,7 +15,6 @@ catch :ctrl_c do
 #$smsc.device.sms_send(99836457, 'test from Smileplug')
 #exit
   loop do
-    $smsc.check_sms
     $smsc.check_connection
     dputs(0) { $smsc.state_to_s }
     sleep 10

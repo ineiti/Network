@@ -19,6 +19,10 @@ module Network
 
       def initialize(device)
         super(device)
+
+        # TODO: once serialmodem turns into a class, add an observer here
+        device.serial_sms_new.push(Proc.new { |sms| new_sms(sms) })
+        device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
       end
 
       def new_sms(sms)
@@ -54,7 +58,7 @@ module Network
       end
 
       def new_ussd(code, str)
-        dputs(2) { "#{code} - #{str.inspect}" }
+        dputs(3) { "#{code} - #{str.inspect}" }
         if str =~ /Apologies, there has been a system error./
           log_msg :Airtel, "Saw apologies-message for #{code} - retrying"
           ussd_send code
@@ -111,7 +115,7 @@ module Network
 
       def internet_add(volume)
         cr = @@credit.find { |c| c._volume == volume } or return
-        dputs(2) { "Adding #{cr.inspect} to internet" }
+        log_msg :Airtel, "Adding #{cr.inspect} to internet"
         @device.ussd_send("*242*#{cr._code}#")
       end
 

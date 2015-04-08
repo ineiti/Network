@@ -20,7 +20,6 @@ module Network
 
       def initialize(dev)
         #dputs_func
-        super(dev)
         @connection_status = ERROR
         setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
         @operator = nil
@@ -28,6 +27,8 @@ module Network
         # amount of "promotion" left
         @connection_reset = {promotion: 0, transfer: 0}
         @promotion_left = 0
+        super(dev)
+
         if dev._uevent._product =~ /19d2.fff1.0/
           dputs(3) { 'ZTE-modem' }
           @netctl_dev = 'cdma'
@@ -40,7 +41,7 @@ module Network
           @netctl_dev = 'umts'
           @network_dev = 'ppp0'
           @thread_operator = Thread.new {
-            dputs(2) { 'Starting search for operator' }
+            dputs(3) { 'Starting search for operator' }
             rescue_all {
               (1..11).each { |i|
                 dputs(3) { "Searching operator #{i}" }
@@ -49,12 +50,12 @@ module Network
                   rescue_all do
                     log_msg :Serial, "Got new operator #{@operator}"
                     changed
-                    log_msg :Serial, "Telling observers #{self.count_observers}"
+                    dputs(3) { "Telling observers #{self.count_observers}" }
                     notify_observers(:operator)
                   end
                   break
                 else
-                  dputs(1) { "Didn't find operator #{op_name}" }
+                  log_msg :Serial, "Didn't find operator #{op_name}"
                 end
                 sleep 2*i
               }
@@ -64,24 +65,24 @@ module Network
       end
 
       def update(op, dev = nil)
-        dputs(2) { op }
-        dputs(2) { dev }
+        dputs(3) { op }
+        dputs(3) { dev }
       end
 
       def connection_start
-        dputs(2) { 'Starting connection' }
+        dputs(3) { 'Starting connection' }
         @connection_status = CONNECTING
         Kernel.system("netctl restart #{@netctl_dev}")
       end
 
       def connection_restart
-        dputs(2) { 'Restarting connection' }
+        dputs(3) { 'Restarting connection' }
         @connection_status = CONNECTING
         Kernel.system("netctl restart #{@netctl_dev}")
       end
 
       def connection_stop
-        dputs(2) { 'Stopping connection' }
+        dputs(3) { 'Stopping connection' }
         @connection_status = DISCONNECTING
         Kernel.system("netctl stop #{@netctl_dev}")
       end
@@ -116,7 +117,7 @@ module Network
       end
 
       def set_2g
-        log_msg :Serial,  "*****  SETTING TO 2G ***** #{caller.inspect}"
+        log_msg :Serial, "*****  SETTING TO 2G ***** #{caller.inspect}"
         set_connection_type('2go')
       end
 

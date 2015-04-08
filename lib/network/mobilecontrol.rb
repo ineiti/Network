@@ -8,6 +8,8 @@ module Network
                   :recharge_hold
     extend HelperClasses::DPuts
 
+    DEBUG_LVL = 1
+
     UNKNOWN = -1
 
     @operator = nil
@@ -16,8 +18,6 @@ module Network
     def initialize
       @state_now = Device::DISCONNECTED
       @state_goal = UNKNOWN
-      @send_status = false
-      @send_connected = false
       @state_error = 0
       @min_traffic = 100_000
       @traffic_goal = 0
@@ -56,6 +56,8 @@ module Network
               if @device.operator
                 update(:operator)
               end
+              @device.serial_sms_new.push(Proc.new { |sms| new_sms(sms) })
+
               log_msg :MobileControl, "Got new device #{@device}"
             else
               log_msg :MobileControl, "New device #{dev.dev._path} has no option-driver"
@@ -84,9 +86,12 @@ module Network
             recharge_all
           end
         when /internet_added/
-          log_msg :MobileControl, "Making sure we're connected"
-          if @state_goal != Device::CONNECTED
-            make_connection
+          rescue_all do
+            log_msg :MobileControl, "Making sure we're connected #{@state_goal}"
+            if @state_goal != Device::CONNECTED
+              send_status("internet++: #{add}")
+              make_connection
+            end
           end
         when /internet_total/
           if @state_goal == UNKNOWN && @operator.internet_left > @min_traffic
@@ -119,13 +124,13 @@ module Network
     def interpret_commands(msg)
       ret = []
       msg.sub(/^cmd:/i, '').split('::').each { |cmdstr|
-        log_msg :SMS, "Got command-str #{cmdstr.inspect}"
+        log_msg :MobileControl, "Got command-str #{cmdstr.inspect}"
         cmd, attr = /^ *([^ ]*) *(.*) *$/.match(cmdstr)[1..2]
         case cmd.downcase
           when /^status$/
             disk_usage = %x[ df -h / | tail -n 1 ].gsub(/ +/, ' ').chomp
             ret.push "#{System.run_str('hostname').chomp}:"+
-                         " #{state_to_s} :: #{disk_usage} :: #{Time.now}"
+                         " #{state_to_s} :: #{disk_usage} :: #{Time.now.sprintf('%y%m%d-%H%M')}"
           when /^connect/
             make_connection
           when /^disconnect/
@@ -141,17 +146,16 @@ module Network
             Kernel.const_defined? :SMSinfo and SMSinfo.send_email
             return false
           when /^charge/
-
+            recharge_all(attr)
         end
       }
       ret.length == 0 ? nil : ret
     end
 
     def make_connection
-      @operator.update_internet_left(true)
-      @operator.update_credit_left(true)
+      #@operator.update_internet_left(true)
+      #@operator.update_credit_left(true)
       @state_goal = Device::CONNECTED
-      @send_status = @send_connected = true
       @state_error = 0
     end
 
@@ -183,7 +187,7 @@ module Network
       end
 
       # If Network-Actions are defined, call connection-handlers
-      if Network.const_defined? :Actions && old != @state_now
+      if Network.const_defined?(:Actions) && old != @state_now
         if @state_now == Device::CONNECTED
           Network::Actions.connection_up
         elsif old == Device::CONNECTED
@@ -202,37 +206,34 @@ module Network
       log_msg :MobileControl, "Recharging for #{cfas}"
       if cfas >= @operator.internet_cost_smallest
         @operator.internet_add_cost(cfas)
-        @send_status = true
+        send_status("charge: #{cfas}")
         @state_now != Device::CONNECTED and @state_now = UNKNOWN
       else
         log_msg :MobileControl, "#{cfas} is smaller than smallest internet-cost"
       end
     end
 
-    def check_sms
-      return if operator_missing?
-      @device.sms_scan
+    def send_status(msg = nil)
+      Operator.phone_main.to_s.length > 0 and
+          @device.sms_send(Operator.phone_main,
+                           interpret_commands('cmd:status').push(msg).compact.join('::'))
+      Kernel.const_defined?(:SMSinfo) and
+          SMSinfo.send_email
+    end
 
-      if @send_status
-        Operator.phone_main.to_s.length > 0 and
-            @device.sms_send(Operator.phone_main, interpret_commands('cmd:status').join('::'))
-        @send_status = false
-        Kernel.const_defined? :SMSinfo and SMSinfo.send_email
-      end
-      dputs(3) { "SMS are: #{sms.inspect}" }
-      @device.sms_list.each { |sms|
-        Kernel.const_defined? :SMSs and SMSs.create(sms)
-        rescue_all do
-          log_msg :MobileControl, "Working on SMS #{sms.inspect}"
-          if sms._Content =~ /^cmd:/i
-            if (ret = interpret_commands(sms._Content))
-              log_msg :MobileControl, "Sending to #{sms._Phone} - #{ret.inspect}"
-              @device.sms_send(sms._Phone, ret.join('::'))
-            end
+    def new_sms(sms)
+      dputs(3) { "SMS is: #{sms.inspect}" }
+      Kernel.const_defined?(:SMSs) && SMSs.create(sms)
+      rescue_all do
+        if sms._msg =~ /^cmd:/i
+          dputs(2) { "Working on SMS #{sms.inspect}" }
+          if (ret = interpret_commands(sms._msg))
+            log_msg :MobileControl, "Sending to #{sms._number} - #{ret.inspect}"
+            @device.sms_send(sms._number, ret.join('::'))
           end
+          @device.sms_delete sms._id
         end
-        @device.sms_delete(sms._Index)
-      }
+      end
     end
   end
 end

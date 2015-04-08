@@ -4,7 +4,7 @@ require 'helperclasses'
 module Network
   extend HelperClasses::DPuts
   module Device
-    DEBUG_LVL = 3
+    DEBUG_LVL = 1
 
     attr_accessor :devices, :present
     extend HelperClasses::DPuts
@@ -61,7 +61,7 @@ module Network
         @devices.each { |name, d|
           dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
           if d.check_new(dev)
-            dputs(2) { "Adding device #{name} - #{dev.inspect}" }
+            dputs(3) { "Adding device #{name} - #{dev.inspect}" }
             @present.push (newdev = d.new(dev))
             changed
             notify_observers(:add, @present.last)
