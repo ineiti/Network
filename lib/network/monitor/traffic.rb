@@ -118,13 +118,14 @@ module Network
 
       def iptables(*args)
         if !@ipt_cmd
-          @ipt_cmd = System.exists?('iptables') ? 'iptables' : ''
-          @iptables_wait = if @iptables_present
-                             (System.run_str('iptables --help') =~ / -w /) ? '-w' : ''
-                           else
-                             ''
-                           end
+          if System.exists?('iptables')
+            @ipt_cmd = 'iptables'
+            @iptables_wait = (System.run_str('iptables --help') =~ / -w /) ? '-w' : ''
+          else
+            @ipt_cmd = ''
+          end
         end
+
         if @ipt_cmd != ''
           System.run_str("iptables #{@iptables_wait} #{args.join(' ')}")
         else
@@ -189,9 +190,9 @@ module Network
           graph_traffic
         end
 
-        total = 0
         start = @bw ? 3 : 0
-        ld (vals = @old_values.zip(data)[start..-1].collect { |a, b| (b - a) * 8 / 10 }).join(':')
+        ld (vals = @old_values.zip(data)[start..-1].collect { |a, b|
+             (b.to_i - a.to_i) * 8 / 10 }).join(':')
         ld vals.inject(:+)
         @old_values = data
       end
@@ -217,7 +218,9 @@ module Network
           # Cleaning up
           if ipt('-L -n') =~ /#{count}/
             ld 'Cleaning up'
-            ipt '-D', mangle, '-j', count
+            while ipt("-L #{mangle} -nv") =~ / #{count} /
+              ipt '-D', mangle, '-j', count
+            end
             ipt '-F', count
             ipt '-X', count
           end

@@ -361,7 +361,9 @@ module Network
       ipt = table ? "-t #{table}" : ''
       if iptables(ipt, '-L', par, '-n').index(chain)
         if par
-          iptables ipt, "-D #{par.to_s} -j #{chain}"
+          while iptables(ipt, "-L #{par.to_s} -nv") =~ / #{chain} /
+            iptables ipt, "-D #{par.to_s} -j #{chain}"
+          end
         end
         iptables ipt, "-F #{chain}"
         iptables ipt, "-X #{chain}"

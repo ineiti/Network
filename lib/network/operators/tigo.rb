@@ -19,13 +19,10 @@ module Network
 
       def initialize(device)
         super(device)
-        @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
-        @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
-        @internet_left = -1
-        @credit_left = -1
         # If there is not at least 50 CFAs left, Tigo will not connect!
         @tigo_base_credit = 50
         @last_promotion = Entities.Statics.get(:Tigo).data_str.to_i
+
         # If there is less than 25MB left, chances are that we need to reconnect
         # every 500kB!
         limit_transfer([[3_000_000, 250_000],
@@ -39,49 +36,35 @@ module Network
         Entities.Statics.get(:Tigo).data_str = value
       end
 
-      def new_sms(list, id)
+      def new_sms(sms)
         treated = false
-        log_msg :Tigo, "Incoming SMS: #{list[id].inspect}"
-        case list[id][1]
-          when '"CPTInternet"'
-            if str = list[id][4]
-              if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
-                bytes, mult = left[2].split
-                (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-                    bytes = (bytes.to_f * 10 ** exp).to_i
-                dputs(2) { "Got internet: #{bytes} :: #{str}" }
-                @internet_left = bytes.to_i
-                treated = true
-              elsif str =~ /Vous n avez aucun abonnement/
-                dputs(2) { "Got internet-none: 0 :: #{str}" }
-                @internet_left = 0
-                last_promotion_set 0
-                treated = true
-              end
+        str = sms._msg or return
+        case sms._number
+          when 'CPTInternet'
+            if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
+              bytes, mult = left[2].split
+              (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
+                  bytes = (bytes.to_f * 10 ** exp).to_i
+              dputs(2) { "Got internet: #{bytes} :: #{str}" }
+              internet_total bytes.to_i
+              treated = true
+            elsif str =~ /Vous n avez aucun abonnement/
+              dputs(2) { "Got internet-none: 0 :: #{str}" }
+              internet_total 0
+              last_promotion_set 0
+              treated = true
             end
           else
-            if str = list[id][4]
-              if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
-                log_msg :Tigo, "Got credit #{left[1].inspect}"
-                @credit_left += left[1].to_i
-              elsif int = str.match(/Souscription reussie:.* ([0-9]+)\s*([MG]B)/)
-                @internet_left += str_to_internet(int[1], int[2])
-                log_msg :Tigo, "Got internet #{int.inspect}: #{@internet_left}"
-              end
+            if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
+              credit_added left[1].to_i
+            elsif int = str.match(/Souscription reussie:.* ([0-9]+)\s*([MG]B)/)
+              internet_added str_to_internet(int[1], int[2])
             end
         end
         if treated
           sleep 5
-          #@device.serial_sms_to_delete.push id
-          @device.sms_delete id
+          @device.sms_delete sms._id
         end
-      end
-
-      def str_to_internet(nbr, e)
-        (exp = {k: 3, M: 6, G: 9}[e.to_sym]) and
-            bytes = (nbr.to_f * 10 ** exp).to_i
-        dputs(3) { "Got #{nbr}::#{e} and deduced traffic #{bytes}" }
-        bytes
       end
 
       def new_ussd(code, str)
@@ -94,23 +77,21 @@ module Network
           case code
             when '*100#'
               if left = str.match(/([0-9\.]+)*\s*CFA/)
-                @credit_left = left[1].to_i
+                credit_total left[1].to_i
               end
+
             when '*128#'
               dputs(2) { "Got string #{str}" }
               if left = str.match(/([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[1].split
-                @internet_left = -1 unless (bytes && mult)
-                (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-                    bytes = (bytes.to_f * 10 ** exp).to_i
-                dputs(3) { "Got #{str} and deduced traffic #{left}::#{left[1]}::#{bytes}" }
-                @internet_left = bytes
+                return unless (bytes && mult)
+                internet_total str_to_internet bytes, mult
                 if @last_promotion <= 0
-                  last_promotion_set bytes
+                  last_promotion_set @internet_left
                 end
               elsif str =~ /pas de promotions/ || str =~ /SMS KATTIR/
                 dputs(3) { 'Setting internet-left to 0' }
-                @internet_left = 0
+                internet_total 0
                 last_promotion_set 0
               end
             when /^\*123/
@@ -119,7 +100,7 @@ module Network
               case str
                 # This is Airtel, but perhaps Tigo'll have something like that, too
                 when /epuise votre forfait Internet/
-                  @internet_left = 0
+                  internet_total 0
               end
           end
         end

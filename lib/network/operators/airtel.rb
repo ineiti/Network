@@ -19,43 +19,37 @@ module Network
 
       def initialize(device)
         super(device)
-        @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
-        @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
-        @internet_left = Network::Operator.start_loaded ? 100_000_000 : -1
-        @credit_left = -1
       end
 
-      def new_sms(list, id)
+      def new_sms(sms)
         treated = false
-        case list[id][1]
-          when '"CPTInternet"'
-            if str = list[id][4]
+        case sms._number
+          when 'CPTInternet'
+            if str = sms._msg
               if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[2].split
-                (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-                    bytes = (bytes.to_f * 10 ** exp).to_i
-                dputs(2) { "Got internet: #{bytes} :: #{str}" }
-                @internet_left = bytes.to_i
+                internet_total str_to_internet bytes, mult
+                treated = true
+              elsif left = str.match(/(Vous avez achete le forfait) ([0-9\.]+\s*.[oObB])/)
+                bytes, mult = left[2].split
+                internet_add str_to_internet bytes, mult
                 treated = true
               elsif str =~ /Vous n avez aucun abonnement/
-                dputs(2) { "Got internet-none: 0 :: #{str}" }
-                @internet_left = 0
+                internet_total 0
                 treated = true
               end
             end
-          when '"432"'
-            case str = list[id][4]
+          when '432'
+            case str = sms._msg
               when /^601:/
                 if credit = str.match(/transfere ([0-9]+) CFA/)
-                  dputs(2){"Got transfer of credit: #{credit[1]} - #{list[id].inspect}"}
-                  @credit_left += credit[1].to_i
+                  credit_add credit[1].to_i
                 end
             end
         end
         if treated
           sleep 5
-          #@device.serial_sms_to_delete.push id
-          @device.sms_delete id
+          @device.sms_delete sms._id
         end
       end
 
@@ -68,18 +62,16 @@ module Network
           case code
             when '*137#'
               if left = str.match(/(Solde principal|PPL)\s*([0-9\.]+)*\s*F/)
-                @credit_left = left[2].to_i
-                dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
+                credit_total left[2].to_i
               end
             when /^\*136/
               if left = str.match(/Vous avez recharge ([0-9]+) F/)
-                @credit_left += left[1].to_i
-                dputs(2) { "Got credit: #{@credit_left} :: #{str}" }
+                credit_add left[1].to_i
               end
             else
               case str
                 when /epuise votre forfait Internet/
-                  @internet_left = 0
+                  internet_total 0
               end
           end
         end

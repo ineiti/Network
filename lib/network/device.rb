@@ -185,6 +185,12 @@ module Network
         @operator = Operator.search_name(:Direct, self)
       end
 
+      def sms_inject(msg, number = '1234',
+                     date = Time.now.strftime('%Y-%m-%d %H:%M:%S'), index = -1)
+        sms = sms_new(index, 'unread', number, date, msg)
+        log_msg :Operator, "Injected SMS #{sms.inspect}"
+      end
+
       def self.inherited(other)
         dputs(2) { "Inheriting device #{other.inspect} - #{other.class.name}" }
         Device.devices[other.to_s.sub(/.*::/, '')] = other

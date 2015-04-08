@@ -22,7 +22,6 @@ module Network
       @min_traffic = 100_000
       @traffic_goal = 0
       @recharge_hold = false
-      @sms_injected = []
       @asked_add_internet = nil
 
       @device = nil
@@ -53,18 +52,53 @@ module Network
           if !@device && dev
             if dev.dev._uevent and dev.dev._uevent._driver == 'option'
               @device = dev
-              @operator = @device.operator
               @device.add_observer(self)
-              log_msg :MobileControl, "Got new device #{@device} with operator #{@operator}"
+              if @device.operator
+                update(:operator)
+              end
+              log_msg :MobileControl, "Got new device #{@device}"
             else
               log_msg :MobileControl, "New device #{dev.dev._path} has no option-driver"
             end
           end
         when /operator/
           @operator = @device.operator
+          @operator.add_observer(self, :update_operator)
           log_msg :MobileControl, "Found operator #{@operator}"
         when /down/
           log_msg :MobileControl, "Downing device #{@device}"
+      end
+    end
+
+    def update_operator(msg, add = 0)
+      case msg
+        when /credit_added/
+          if do_autocharge?
+            log_msg :MobileControl, "Got credit #{add} and autocharging on"
+            recharge_all
+          end
+        when /credit_total/
+          if do_autocharge? && operator.internet_left <= @min_traffic &&
+              operator.credit_left >= operator.internet_cost_smallest
+            log_msg :MobileControl, "Credit #{@credit_left}, no internet and autocharging on"
+            recharge_all
+          end
+        when /internet_added/
+          log_msg :MobileControl, "Making sure we're connected"
+          if @state_goal != Device::CONNECTED
+            make_connection
+          end
+        when /internet_total/
+          if @state_goal == UNKNOWN && @operator.internet_left > @min_traffic
+            log_msg :MobileControl, 'Enough internet, connecting'
+            make_connection
+            return
+          elsif @state_goal != Device::CONNECTED || @operator.internet_left > @min_traffic
+            return
+          end
+          log_msg :MobileControl, 'Not enough internet, checking for charge-possibility'
+          @state_goal = Device::DISCONNECTED
+          update_operator(:credit_total)
       end
     end
 
@@ -73,27 +107,25 @@ module Network
     end
 
     def state_to_s
-      il = operator_missing? ? -1 : @operator.internet_left
-      "#{@state_now}-#{@state_goal}-#{@state_error}-#{il}"
-    end
-
-    def inject_sms(content, phone = '1234',
-                   date = Time.now.strftime('%Y-%m-%d %H:%M:%S'), index = -1)
-      new_sms = {:Content => content, :Phone => phone,
-                 :Date => date, :Index => index}
-      @sms_injected.push(new_sms)
-      dputs(2) { "Injected #{new_sms.inspect}: #{@sms_injected.inspect}" }
+      "#{@state_now}:#{@state_goal}:#{@state_error}:" +
+          if operator_missing?
+            'noop'
+          else
+            "#{(@operator.internet_left / 1_000_000).separator("'")}Mo:" +
+                "#{@operator.credit_left}CFAs"
+          end
     end
 
     def interpret_commands(msg)
       ret = []
-      msg.sub(/^cmd:/i, '').split("::").each { |cmdstr|
+      msg.sub(/^cmd:/i, '').split('::').each { |cmdstr|
         log_msg :SMS, "Got command-str #{cmdstr.inspect}"
         cmd, attr = /^ *([^ ]*) *(.*) *$/.match(cmdstr)[1..2]
         case cmd.downcase
           when /^status$/
             disk_usage = %x[ df -h / | tail -n 1 ].gsub(/ +/, ' ').chomp
-            ret.push "#{state_to_s} :: #{disk_usage} :: #{Time.now}"
+            ret.push "#{System.run_str('hostname').chomp}:"+
+                         " #{state_to_s} :: #{disk_usage} :: #{Time.now}"
           when /^connect/
             make_connection
           when /^disconnect/
@@ -103,11 +135,13 @@ module Network
           when /^ping/
             ret.push 'pong'
           when /^sms/
-            number, text = attr.split(";", 2)
+            number, text = attr.split(';', 2)
             @device.sms_send(number, text)
           when /^email/
             Kernel.const_defined? :SMSinfo and SMSinfo.send_email
             return false
+          when /^charge/
+
         end
       }
       ret.length == 0 ? nil : ret
@@ -126,30 +160,7 @@ module Network
       @operator.update_credit_left
       @operator.update_internet_left
 
-      if @operator.internet_left >= 0 and @state_goal == UNKNOWN
-        if @operator.internet_left > @min_traffic
-          @state_goal = Device::CONNECTED
-        else
-          if @operator.credit_left == 0
-            @state_goal = Device::DISCONNECTED
-          else
-            if @operator.credit_left > 0 &&
-                @operator.credit_left >= @operator.internet_cost_smallest
-              if !@asked_add_internet || (Time.now - @asked_add_internet > 300)
-                inject_sms("valeur transferee #{@operator.credit_left} CFA")
-                @asked_add_internet = Time.now
-              end
-            end
-            @state_goal = UNKNOWN
-          end
-        end
-      end
-
       old = @state_now
-      if @state_now == Device::CONNECTED &&
-          (@operator.internet_left >= 0 && @operator.internet_left <= @min_traffic)
-        @state_goal = Device::DISCONNECTED
-      end
 
       @state_now = @device.connection_status
       if @state_goal != @state_now
@@ -158,35 +169,25 @@ module Network
           log_msg :MobileControl, 'Connection Error - stopping'
           @device.connection_stop
           sleep 2
-          #if @state_error > 5
-          #  @state_goal = Connection::DISCONNECTED
-          #end
-        end
-        if @state_goal == Device::DISCONNECTED
+          if @state_error > 5
+            @state_goal = Connection::DISCONNECTED
+          end
+        elsif @state_goal == Device::DISCONNECTED
           log_msg :MobileControl, 'Goal is ::Disconnected'
           @device.connection_stop
         elsif @state_goal == Device::CONNECTED
-          if @operator.internet_left < @min_traffic
-            @state_goal = Device::DISCONNECTED
-          else
-            @device.connection_start
-          end
+          @device.connection_start
         end
       else
         @state_error = 0
       end
-      if old != @state_now
-        begin
-          if @state_now == Device::CONNECTED
-            if @send_connected
-              @send_connected = false
-              @send_status = true
-            end
-            Network::Actions.connection_up
-          elsif old == Device::CONNECTED
-            Network::Actions.connection_down
-          end
-        rescue NameError => e
+
+      # If Network-Actions are defined, call connection-handlers
+      if Network.const_defined? :Actions && old != @state_now
+        if @state_now == Device::CONNECTED
+          Network::Actions.connection_up
+        elsif old == Device::CONNECTED
+          Network::Actions.connection_down
         end
       end
     end
@@ -218,55 +219,15 @@ module Network
         @send_status = false
         Kernel.const_defined? :SMSinfo and SMSinfo.send_email
       end
-      sms = @device.sms_list.concat(@sms_injected)
-      @sms_injected = []
       dputs(3) { "SMS are: #{sms.inspect}" }
-      sms.each { |sms|
+      @device.sms_list.each { |sms|
         Kernel.const_defined? :SMSs and SMSs.create(sms)
         rescue_all do
-          log_msg :SMS, "Working on SMS #{sms.inspect}"
+          log_msg :MobileControl, "Working on SMS #{sms.inspect}"
           if sms._Content =~ /^cmd:/i
             if (ret = interpret_commands(sms._Content))
-              log_msg :SMS, "Sending to #{sms._Phone} - #{ret.inspect}"
+              log_msg :MobileControl, "Sending to #{sms._Phone} - #{ret.inspect}"
               @device.sms_send(sms._Phone, ret.join('::'))
-            end
-          else
-            case @operator.name.to_sym
-              when :Airtel
-                case sms._Content
-                  when /valeur transferee ([0-9]*) CFA/i
-                    cfas = $1
-                    log_msg :MobileControl, "Got #{cfas} CFAs"
-                    if do_autocharge?
-                      recharge_all(cfas.to_i)
-                    else
-                      log_msg :MobileControl, 'Not recharging, waiting for more...'
-                    end
-                  when /votre abonnement internet/,
-                      /Vous avez achete le forfait/
-                    log_msg :MobileControl, "Making sure we're connected"
-                    if @state_goal != Device::CONNECTED
-                      make_connection
-                      log_msg :MobileControl, 'Airtel - make connection'
-                    end
-                end
-              when :Tigo
-                case sms._Content
-                  when /valeur transferee ([0-9]*) CFA/i
-                    cfas = $1
-                    if do_autocharge? &&
-                        !(sms._Content =~ /Tigo Cash/ && !sms._Content =~ /Vous avez recu/)
-                      log_msg :MobileControl, "Got #{cfas} CFAs"
-                      if do_autocharge?
-                        recharge_all(cfas.to_i)
-                      else
-                        log_msg :MobileControl, 'Not recharging, waiting for more...'
-                      end
-                    end
-                  when /souscription reussie/i
-                    log_msg :SMS, 'Making connection'
-                    make_connection
-                end
             end
           end
         end

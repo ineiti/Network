@@ -68,13 +68,72 @@ module Network
     class Stub
       attr_accessor :connection_type, :last_promotion
       extend HelperClasses::DPuts
+      include Observer
 
       def initialize(dev)
         @device = dev
         dev.add_observer(self)
         @connection_type = CONNECTION_ALWAYS
+        @internet_left = Network::Operator.start_loaded ? 100_000_000 : -1
+        @credit_left = -1
+
+        # TODO: once serialmodem turns into a class, add an observer here
+        @device.serial_sms_new.push(Proc.new { |list, id| new_sms(list, id) })
+        @device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
       end
 
+      def new_sms(sms)
+
+      end
+
+      def new_ussd(code, str)
+
+      end
+
+      # (credit|internet)_(added_total)
+      # Methods to be called when something happens
+      def credit_added(add)
+        @credit_left += add
+        log_msg :Operator, "Added credit #{add}: #{@credit_left}"
+        changed
+        notify_observers(:credit_added, add)
+      end
+
+      def credit_total(tot)
+        @credit_left = tot
+        log_msg :Operator, "Total credit #{@credit_left}"
+        changed
+        notify_observers(:credit_added)
+      end
+
+      def internet_added(add)
+        @internet_left += add
+        log_msg :Operator, "Added internet #{int.inspect}: #{@internet_left}"
+        changed
+        notify_observers(:internet_added, add)
+      end
+
+      def internet_total(tot)
+        @internet_left = tot
+        log_msg :Operator, "Total internet #{@credit_left}"
+        changed
+        notify_observers(:internet_added)
+      end
+
+      def str_to_internet(nbr, e)
+        (exp = {k: 3, M: 6, G: 9}[e.to_s[0].to_sym]) and
+            bytes = (nbr.to_f * 10 ** exp).to_i
+        dputs(3) { "Got #{nbr}::#{e} and deduced traffic #{bytes}" }
+        bytes
+      end
+
+      (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
+          bytes = (bytes.to_f * 10 ** exp).to_i
+
+
+      # Operator Tigo in Chad limits downloads to a certain amount for small internet-
+      # fees. This function restarts the connection in that case.
+      # Doesn't apply to fees >= 800CFA
       def limit_transfer(pt)
         @thread_reset = Thread.new {
           rescue_all {
@@ -160,7 +219,7 @@ module Network
       end
 
       def internet_cost_smallest
-        internet_cost.sort.first.first
+        internet_cost.sort.first.first.to_i
       end
     end
   end
