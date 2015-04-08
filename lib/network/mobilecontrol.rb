@@ -130,7 +130,7 @@ module Network
           when /^status$/
             disk_usage = %x[ df -h / | tail -n 1 ].gsub(/ +/, ' ').chomp
             ret.push "#{System.run_str('hostname').chomp}:"+
-                         " #{state_to_s} :: #{disk_usage} :: #{Time.now.sprintf('%y%m%d-%H%M')}"
+                         " #{state_to_s} :: #{disk_usage} :: #{Time.now.strftime('%y%m%d-%H%M')}"
           when /^connect/
             make_connection
           when /^disconnect/
