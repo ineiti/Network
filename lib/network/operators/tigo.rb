@@ -60,7 +60,6 @@ module Network
               end
             end
           else
-            dp 'else-while'
             if str = list[id][4]
               if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
                 log_msg :Tigo, "Got credit #{left[1].inspect}"

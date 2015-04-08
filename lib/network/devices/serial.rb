@@ -116,7 +116,7 @@ module Network
       end
 
       def set_2g
-        dp "*****  SETTING TO 2G ***** #{caller.inspect}"
+        log_msg :Serial,  "*****  SETTING TO 2G ***** #{caller.inspect}"
         set_connection_type('2go')
       end
 
