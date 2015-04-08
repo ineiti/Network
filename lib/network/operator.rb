@@ -1,4 +1,5 @@
 require 'helperclasses/system.rb'
+require 'observer'
 
 module Network
   module Operator
@@ -68,7 +69,7 @@ module Network
     class Stub
       attr_accessor :connection_type, :last_promotion
       extend HelperClasses::DPuts
-      include Observer
+      include Observable
 
       def initialize(dev)
         @device = dev
@@ -125,41 +126,6 @@ module Network
             bytes = (nbr.to_f * 10 ** exp).to_i
         dputs(3) { "Got #{nbr}::#{e} and deduced traffic #{bytes}" }
         bytes
-      end
-
-      (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
-          bytes = (bytes.to_f * 10 ** exp).to_i
-
-
-      # Operator Tigo in Chad limits downloads to a certain amount for small internet-
-      # fees. This function restarts the connection in that case.
-      # Doesn't apply to fees >= 800CFA
-      def limit_transfer(pt)
-        @thread_reset = Thread.new {
-          rescue_all {
-            #dputs_func
-            while @device do
-              if @last_promotion > 0
-                pt.find { |promotion, limit|
-                  if promotion >= @last_promotion
-                    dputs(3) { "#{promotion}:#{limit}:#{@last_promotion} - #{@internet_left}" }
-                    v = System.run_str("grep '#{@device.network_dev}' /proc/net/dev").
-                        sub(/^ */, '').split(/[: ]+/)
-                    rx, tx = v[1].to_i, v[9].to_i
-                    dputs(3) { "#{@device.network_dev} - Tx: #{tx}, Rx: #{rx} - #{v.inspect}" }
-                    if rx + tx > limit
-                      log_msg :Serial_reset, 'Resetting due to excessive download'
-                      @device.connection_restart
-                    end
-                    true
-                  end
-                }
-              end
-              sleep 20
-            end
-            log_msg :Serial_reset, 'Stopping reset-loop'
-          }
-        }
       end
 
       def user_cost_max
@@ -220,6 +186,38 @@ module Network
 
       def internet_cost_smallest
         internet_cost.sort.first.first.to_i
+      end
+
+      # Automatic restart of the connection after a certain amount of traffic:
+      # Operator Tigo in Chad limits downloads to a certain amount for small internet-
+      # fees. This function restarts the connection in that case.
+      # Doesn't apply to fees >= 800CFA
+      def limit_transfer(pt)
+        @thread_reset = Thread.new {
+          rescue_all {
+            #dputs_func
+            while @device do
+              if @last_promotion > 0
+                pt.find { |promotion, limit|
+                  if promotion >= @last_promotion
+                    dputs(3) { "#{promotion}:#{limit}:#{@last_promotion} - #{@internet_left}" }
+                    v = System.run_str("grep '#{@device.network_dev}' /proc/net/dev").
+                        sub(/^ */, '').split(/[: ]+/)
+                    rx, tx = v[1].to_i, v[9].to_i
+                    dputs(3) { "#{@device.network_dev} - Tx: #{tx}, Rx: #{rx} - #{v.inspect}" }
+                    if rx + tx > limit
+                      log_msg :Serial_reset, 'Resetting due to excessive download'
+                      @device.connection_restart
+                    end
+                    true
+                  end
+                }
+              end
+              sleep 20
+            end
+            log_msg :Serial_reset, 'Stopping reset-loop'
+          }
+        }
       end
     end
   end
