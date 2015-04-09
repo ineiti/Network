@@ -60,7 +60,7 @@ module Network
 
               log_msg :MobileControl, "Got new device #{@device}"
             else
-              log_msg :MobileControl, "New device #{dev.dev._path} has no option-driver"
+              dputs(2) { "New device #{dev.dev._path} has no option-driver" }
             end
           end
         when /operator/
