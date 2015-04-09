@@ -70,7 +70,7 @@ module Network
     def iptables(*cmds)
       if @iptables_present
         log cmds.join(' ')
-        System.run_str("iptables #{@iptables_wait} #{ cmds.join(' ') }")
+        System.run_str(dp "iptables #{@iptables_wait} #{ cmds.join(' ') }")
       else
         log cmds.join(' ')
         ''

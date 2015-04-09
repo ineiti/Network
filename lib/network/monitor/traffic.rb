@@ -127,7 +127,7 @@ module Network
         end
 
         if @ipt_cmd != ''
-          System.run_str("iptables #{@iptables_wait} #{args.join(' ')}")
+          System.run_str(dp "iptables #{@iptables_wait} #{args.join(' ')}")
         else
           return ''
         end
