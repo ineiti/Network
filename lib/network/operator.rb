@@ -6,9 +6,11 @@ module Network
     attr_accessor :operators, :start_loaded,
                   :cost_base, :cost_shared, :allow_free, :phone_main
 
-    extend HelperClasses::DPuts
     include HelperClasses
+    extend HelperClasses::DPuts
     extend self
+    DEBUG_LVL = 1
+
     MISSING = -1
     CONNECTED = 1
     DISCONNECTED = 2
@@ -92,7 +94,7 @@ module Network
 
       def credit_total(tot)
         @credit_left = tot
-        log_msg :Operator, "Total credit #{@credit_left}"
+        dputs(2) { "Total credit #{@credit_left}" }
         changed
         rescue_all {
           notify_observers(:credit_total)
@@ -101,7 +103,7 @@ module Network
 
       def internet_added(add)
         @internet_left += add
-        log_msg :Operator, "Added internet #{int.inspect}: #{@internet_left}"
+        log_msg :Operator, "Added internet #{add.inspect}: #{@internet_left}"
         changed
         rescue_all {
           notify_observers(:internet_added, add)
@@ -110,7 +112,7 @@ module Network
 
       def internet_total(tot)
         @internet_left = tot
-        log_msg :Operator, "Total internet #{@internet_left}"
+        dputs(2) { "Total internet #{@internet_left}" }
         changed
         rescue_all {
           notify_observers(:internet_total)

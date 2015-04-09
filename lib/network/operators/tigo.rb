@@ -63,6 +63,9 @@ module Network
               credit_added left[1].to_i
             elsif int = str.match(/Souscription reussie:.* ([0-9]+)\s*([MG]B)/)
               internet_added str_to_internet(int[1], int[2])
+            elsif str =~ /vous n avez plus de MB/
+              internet_total 0
+              last_promotion_set 0
             end
         end
         if treated
@@ -73,7 +76,7 @@ module Network
 
       def new_ussd(code, str)
         #dputs_func
-        dputs(3) { "#{code} - #{str.inspect}" }
+        ddputs(3) { "#{code} - #{str.inspect}" }
         if str =~ /Apologies, there has been a system error./
           log_msg :Tigo, "Saw apologies-message for #{code} - retrying"
           ussd_send code

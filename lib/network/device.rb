@@ -23,7 +23,7 @@ module Network
     @present = []
 
     def install_system
-      udev_path = File.expand_path("../../bin", __FILE__)
+      udev_path = File.expand_path('../../../udev', __FILE__)
       FileUtils.cp "#{udev_path}/90-network-udev.rules", '/lib/udev/rules.d'
       FileUtils.cp "#{udev_path}/device_udev", '/usr/local/bin'
       FileUtils.cp "#{udev_path}/device_udev.rb", '/usr/local/bin'
@@ -126,6 +126,7 @@ module Network
     end
 
     def start_drb
+      install_system
       DRb.start_service 'druby://localhost:9000', Network::Device
       log_msg :Device, "Server running at #{DRb.uri}"
       trap('INT') { DRb.stop_service }

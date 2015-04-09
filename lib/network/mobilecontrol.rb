@@ -30,7 +30,7 @@ module Network
     end
 
     def operator_missing?
-      if @operator
+      if @operator && @device
         false
       else
         @state_now = Device::DISCONNECTED
@@ -143,7 +143,7 @@ module Network
             number, text = attr.split(';', 2)
             @device.sms_send(number, text)
           when /^email/
-            Kernel.const_defined? :SMSinfo and SMSinfo.send_email
+            send_email
             return false
           when /^charge/
             recharge_all(attr)
@@ -157,6 +157,7 @@ module Network
       #@operator.update_credit_left(true)
       @state_goal = Device::CONNECTED
       @state_error = 0
+      send_email
     end
 
     def check_connection
@@ -200,25 +201,30 @@ module Network
       @autocharge && !@recharge_hold
     end
 
-    def recharge_all(cfas = 0)
+    def recharge_all(credit = 0)
       return unless @operator
-      (cfas == 0 or !cfas) and cfas = @operator.credit_left
-      log_msg :MobileControl, "Recharging for #{cfas}"
-      if cfas >= @operator.internet_cost_smallest
-        @operator.internet_add_cost(cfas)
-        send_status("charge: #{cfas}")
+      (credit == 0 or credit.to_s.length == 0) and credit = @operator.credit_left
+      credit = credit.to_i
+      log_msg :MobileControl, "Recharging for #{credit}"
+      if credit >= @operator.internet_cost_smallest
+        @operator.internet_add_cost(credit)
+        send_status("charge: #{credit}")
         @state_now != Device::CONNECTED and @state_now = UNKNOWN
       else
-        log_msg :MobileControl, "#{cfas} is smaller than smallest internet-cost"
+        log_msg :MobileControl, "#{credit} is smaller than smallest internet-cost"
       end
+    end
+
+    def send_email
+      Kernel.const_defined?(:MobileInfo) and
+          MobileInfo.send_email
     end
 
     def send_status(msg = nil)
       Operator.phone_main.to_s.length > 0 and
           @device.sms_send(Operator.phone_main,
                            interpret_commands('cmd:status').push(msg).compact.join('::'))
-      Kernel.const_defined?(:SMSinfo) and
-          SMSinfo.send_email
+      send_email
     end
 
     def new_sms(sms)
