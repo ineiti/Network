@@ -181,6 +181,7 @@ module Network
       @operator = nil
 
       def initialize(dev)
+        log_msg :Device, "Initialized device #{dev}"
         @dev = dev
         @operator = Operator.search_name(:Direct, self)
       end
@@ -247,7 +248,7 @@ module Network
               return false unless d_self =~ /^#{d_other}$/
           end
         }
-        log_msg(:Device, "Found device #{dev.inspect} in #{self.class.name}")
+        dputs(3){ "Found device #{dev.inspect} in #{self.class.name}"}
         return true
       end
 
