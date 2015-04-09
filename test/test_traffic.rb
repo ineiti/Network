@@ -7,12 +7,38 @@ include HelperClasses::DPuts
 def main
   #test_user
   #test_user_measure
-  test_json
+  #test_json
+  test_new_month
 end
 
 def assert(cond, str = nil)
   return if cond
   log_msg :assert, "Failed on #{str}"
+end
+
+def assert_equal(a, b, str = nil)
+  return if a == b
+  log_msg :assert_equal, "#{str}: #{a.inspect} != #{b.inspect}"
+end
+
+def test_new_month
+  Traffic.setup_config(hosts: %w(one two three), host_ips: {one: 1, two: 2, three: 3})
+  user = Traffic::User.new
+  assert_equal user.get_day(:one, 1), [0,0]
+
+  day = 60*60*24
+  today = Time.parse('2000/2/28')
+  user.update_host(:one, [0,0], today )
+  user.update_host(:one, [100,0], today )
+  assert_equal user.get_day(:one, -4, today ).collect{|d|d.inject(:+)}, [0,0,0,100]
+
+  today += day
+  user.update_host(:one, [200,0], today)
+  assert_equal user.get_day(:one, -4, today ).collect{|d|d.inject(:+)}, [0,0,100,100]
+  today += day
+  user.update_host(:one, [300,0], today)
+  assert_equal user.get_day(:one, -4, today ).collect{|d|d.inject(:+)}, [0,100,100,100]
+  dp user.traffic._one._day
 end
 
 def test_user

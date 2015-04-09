@@ -59,10 +59,16 @@ module Network
             end
             th = traffic_host[t]
             len = th.length / 2
+            offset = if t == :day
+                       31 - Date.new(time.year, time.month).prev_month.
+                           to_time.end_of_month.day
+                     else
+                       0
+                     end
             if advanced == 0
-              advanced = (index + len - last_index) % len unless advanced > 0
+              advanced = (index + len - last_index - offset) % len
             elsif advanced == 1
-              th[0...len] = th[len..-1]
+              th[offset...len] = th[len..-1-offset]
               th[len..-1] = Array.new(len) { [0, 0] }
               advanced = 2 if index > 0
             elsif advanced >= 2
@@ -92,9 +98,9 @@ module Network
             dputs(3) { "Host #{host} has #{t} traffic" }
             update_host host, t
           }
-          (@traffic.collect{|h,t| h} - new_values.collect{|h,t| h}).each{|h|
-            dputs(3){"Updating #{h} with 0 traffic"}
-            update_host h.to_sym, [0,0]
+          (@traffic.collect { |h, t| h } - new_values.collect { |h, t| h }).each { |h|
+            dputs(3) { "Updating #{h} with 0 traffic" }
+            update_host h.to_sym, [0, 0]
           }
           dputs(3) { @traffic.inspect }
         end
@@ -113,6 +119,7 @@ module Network
           host = h.to_sym
           return [0, 0] * range.abs unless t = @traffic[host]
           start = s.send(interval.to_sym) - first_index
+          dp "size: #{size} -- start: #{start}"
           if range < 0
             return t[interval.to_sym][size + start + range + 1..size + start]
           else
