@@ -49,13 +49,6 @@ module Network
     @operator = nil
     @device = nil
 
-    @iptables_present = System.exists? 'iptables'
-    @iptables_wait = if @iptables_present
-                       (System.run_str('iptables --help') =~ / -w /) ? '-w' : ''
-                     else
-                       ''
-                     end
-
     @usage_daily = 0
     @cleanup_skip = false
 
@@ -67,14 +60,8 @@ module Network
       log_msg :Captive, msg
     end
 
-    def iptables(*cmds)
-      if @iptables_present
-        log cmds.join(' ')
-        System.run_str(dp "iptables #{@iptables_wait} #{ cmds.join(' ') }")
-      else
-        log cmds.join(' ')
-        ''
-      end
+    def iptables(*args)
+      System.iptables(args)
     end
 
     def ipnat(*cmds)

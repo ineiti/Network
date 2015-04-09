@@ -116,25 +116,8 @@ module Network
         }
       end
 
-      def iptables(*args)
-        if !@ipt_cmd
-          if System.exists?('iptables')
-            @ipt_cmd = 'iptables'
-            @iptables_wait = (System.run_str('iptables --help') =~ / -w /) ? '-w' : ''
-          else
-            @ipt_cmd = ''
-          end
-        end
-
-        if @ipt_cmd != ''
-          System.run_str(dp "iptables #{@iptables_wait} #{args.join(' ')}")
-        else
-          return ''
-        end
-      end
-
       def ipt(*args)
-        iptables("-t #{@table} #{args.join(' ')}")
+        System.iptables("-t #{@table} #{args.join(' ')}")
       end
 
       def measure_hosts
@@ -150,7 +133,6 @@ module Network
       end
 
       def measure
-        #values = %x[ iptables -t #{table} -L POST_COUNT -nvx | grep -v 172.16.0.1 ].splitn
         values = ipt("-L POST_#{@table_count} -nvx").split("\n")
         ld values.join("\n")
         data = []
