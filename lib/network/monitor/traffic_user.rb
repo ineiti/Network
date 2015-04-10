@@ -84,6 +84,12 @@ module Network
           }
           traffic_host._last_time = time
           traffic_host._last_traffic = traffic
+          if h == :ineiti
+            str = Internet.operator ? "#{Internet.operator.internet_left}" : '::'
+            IO.write('/var/tmp/traffic.ineiti',
+                     "#{traffic_host._last_time} - #{traffic_host.last_traffic}\n" +
+                         "#{str} - #{traffic_host.day[31..-1]}")
+          end
         end
 
         # Updates the counters for all hosts. For debugging purposes
