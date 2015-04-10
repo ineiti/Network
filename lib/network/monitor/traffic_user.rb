@@ -48,7 +48,8 @@ module Network
           last_time = @traffic[host]._last_time
           dputs(3) { "*** Updating at time #{time} from #{last_time}" }
           advanced = 0
-          if traffic_host._last_traffic.inject(:+) > traffic.inject(:+)
+          if !traffic_host._last_traffic ||
+              traffic_host._last_traffic.inject(:+) > traffic.inject(:+)
             traffic_host._last_traffic = [0, 0]
           end
           %i(sec min hour day month year).zip([0, 0, 0, 1, 1, 0]).reverse.
