@@ -46,7 +46,7 @@ module Network
           host = h.to_sym
           traffic_host = @traffic[host] || traffic_init(host, traffic, time)
           last_time = @traffic[host]._last_time
-          dputs(3) { "*** Updating at time #{time} from #{last_time}" }
+          dputs(3) { "*** Updating #{host} at time #{time} from #{last_time}" }
           advanced = 0
           if !traffic_host._last_traffic ||
               traffic_host._last_traffic.inject(:+) > traffic.inject(:+)
@@ -84,11 +84,12 @@ module Network
           }
           traffic_host._last_time = time
           traffic_host._last_traffic = traffic
-          if h == :ineiti
-            str = Internet.operator ? "#{Internet.operator.internet_left}" : '::'
-            IO.write('/var/tmp/traffic.ineiti',
-                     "#{traffic_host._last_time} - #{traffic_host.last_traffic}\n" +
-                         "#{str} - #{traffic_host.day[31..-1]}")
+          if host == :ineiti
+            str = "#{traffic_host._last_time.strftime('%a %y.%m.%d-%H:%M:%S')} - "+
+                "#{traffic_host._last_traffic}\n" +
+                (Internet.operator ? "#{Internet.operator.internet_left}" : '::') +
+                " - #{traffic_host._day[31..-1]}\n"
+            IO.write('/var/tmp/traffic.ineiti', str, mode: 'a')
           end
         end
 
@@ -126,7 +127,6 @@ module Network
           host = h.to_sym
           return [0, 0] * range.abs unless t = @traffic[host]
           start = s.send(interval.to_sym) - first_index
-          dp "size: #{size} -- start: #{start}"
           if range < 0
             return t[interval.to_sym][size + start + range + 1..size + start]
           else

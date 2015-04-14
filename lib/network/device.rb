@@ -23,10 +23,12 @@ module Network
     @present = []
 
     def install_system
-      udev_path = File.expand_path('../../../udev', __FILE__)
-      FileUtils.cp "#{udev_path}/90-network-udev.rules", '/lib/udev/rules.d'
-      FileUtils.cp "#{udev_path}/device_udev", '/usr/local/bin'
-      FileUtils.cp "#{udev_path}/device_udev.rb", '/usr/local/bin'
+      if Service.system != :MacOSX
+        udev_path = File.expand_path('../../../udev', __FILE__)
+        FileUtils.cp "#{udev_path}/90-network-udev.rules", '/lib/udev/rules.d'
+        FileUtils.cp "#{udev_path}/device_udev", '/usr/local/bin'
+        FileUtils.cp "#{udev_path}/device_udev.rb", '/usr/local/bin'
+      end
     end
 
     def env_to_dev(subs, env, catchpath = false)
@@ -249,7 +251,7 @@ module Network
               return false unless d_self =~ /^#{d_other}$/
           end
         }
-        dputs(3){ "Found device #{dev.inspect} in #{self.class.name}"}
+        dputs(3) { "Found device #{dev.inspect} in #{self.class.name}" }
         return true
       end
 

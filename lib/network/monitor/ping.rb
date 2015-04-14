@@ -69,6 +69,7 @@ module Network
 
       def graph_day(log, hours = 3)
         log_lines = read_log(log)
+	return until log_lines.length > 0
         colors = [@inactive, @mixed, @active]
         pngs = {}
         states = {}
