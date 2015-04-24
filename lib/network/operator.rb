@@ -127,7 +127,7 @@ module Network
       end
 
       def user_cost_max
-        Operator.cost_base + Operator.cost_shared
+        Operator.cost_base.to_i + Operator.cost_shared.to_i
       end
 
       def user_cost_now
