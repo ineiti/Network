@@ -384,11 +384,19 @@ module Network
       end
 
       clear
+      Monitor::Traffic.setup_config
+      Monitor::Traffic.create_iptables
+      if traffic_str.to_s.length > 0
+        @traffic = Monitor::Traffic::User.from_json traffic_str
+      else
+        @traffic = Monitor::Traffic::User.new
+      end
 
       @ip_list.clear
       ips_connected.each { |ip|
         log_ "Re-connecting #{ip}"
         ip_forward ip, true
+        Monitor::Traffic.ip_add(ip, name)
       }
       @mac_list.each { |mac|
         log "Accepting mac #{mac}"
@@ -398,14 +406,6 @@ module Network
       if @restricted
         log_ "Setting restrictions of #{@restricted.inspect}"
         restriction_set @restricted
-      end
-
-      Monitor::Traffic.setup_config
-      Monitor::Traffic.create_iptables
-      if traffic_str.to_s.length > 0
-        @traffic = Monitor::Traffic::User.from_json traffic_str
-      else
-        @traffic = Monitor::Traffic::User.new
       end
     end
 
