@@ -38,6 +38,10 @@ module Network
       end
     end
 
+    def operator_name
+      operator_missing? ? 'Unknown' : @operator.name
+    end
+
     def update(operation, dev = nil)
       dputs(3) { "Updating #{operation} with device #{dev}" }
       case operation
@@ -175,7 +179,7 @@ module Network
           @device.connection_stop
           sleep 2
           if @state_error > 5
-            @state_goal = Connection::DISCONNECTED
+            @state_goal = Device::DISCONNECTED
           end
         elsif @state_goal == Device::DISCONNECTED
           log_msg :MobileControl, 'Goal is ::Disconnected'
