@@ -1,14 +1,16 @@
 require 'observer'
 require 'helperclasses'
+require 'fileutils'
+include HelperClasses::DPuts
 
 module Network
-  extend HelperClasses::DPuts
   module Device
     DEBUG_LVL = 1
 
     attr_accessor :devices, :present
     extend HelperClasses::DPuts
     extend HelperClasses::System
+    include HelperClasses
     extend self
     extend Observable
 

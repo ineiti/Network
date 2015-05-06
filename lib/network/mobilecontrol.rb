@@ -5,10 +5,13 @@ module Network
   class MobileControl
     attr_accessor :state_now, :state_goal, :state_error,
                   :min_traffic, :device, :operator, :autocharge, :phone_main,
-                  :recharge_hold
+                  :recharge_hold,
+                  :connection_cmds_up, :connection_cmds_down,
+                  :connection_services_up, :connection_services_down,
+                  :connection_vpns
     extend HelperClasses::DPuts
 
-    DEBUG_LVL = 1
+    DEBUG_LVL = 2
 
     UNKNOWN = -1
 
@@ -164,6 +167,44 @@ module Network
       send_email
     end
 
+    def connection_run_cmds(str)
+      return unless str
+      if str
+        str.split("\n").each { |cmd|
+          dputs(2){"Running cmd #{cmd}"}
+          System.run_str(cmd)
+        }
+      end
+    end
+
+    def connection_services(str, action)
+      return unless str
+      str.split(' ').each { |service|
+        case action
+          when /start/
+            dputs(2){"Starting service #{service}"}
+            Service.start(service)
+          when /stop/
+            dputs(2){"Stopping service #{service}"}
+            Service.stop(service)
+        end
+      }
+    end
+
+    def connection_vpn(vpns, action)
+      return unless vpns
+      vpns.split(' ').each{|vpn_name|
+        case action
+          when /start/
+            dputs(2){"Starting openvpn #{vpn_name}"}
+            Service.restart("openvpn@#{vpn_name}")
+          when /stop/
+            dputs(2){"Stopping openvpn #{vpn_name}"}
+            Service.stop("openvpn@#{vpn_name}")
+        end
+      }
+    end
+
     def check_connection
       return if operator_missing?
       @operator.update_credit_left
@@ -191,12 +232,20 @@ module Network
         @state_error = 0
       end
 
-      # If Network-Actions are defined, call connection-handlers
-      if Network.const_defined?(:Actions) && old != @state_now
+      # Do some actions when the connection changes
+      if old != @state_now
         if @state_now == Device::CONNECTED
-          Network::Actions.connection_up
+          log_msg :MobileControl, "Connection goes up, doing cmds: #{@connection_cmds_up} " +
+                                    "services: #{@connection_services_up}, vpn: #{@connection_vpns}"
+          connection_run_cmds(@connection_cmds_up)
+          connection_services(@connection_services_up, :start)
+          connection_vpn(@connection_vpns, :start)
         elsif old == Device::CONNECTED
-          Network::Actions.connection_down
+          log_msg :MobileControl, "Connection goes down, doing cmds: #{@connection_cmds_up} " +
+                                    "services: #{@connection_services_down}, vpn: #{@connection_vpns}"
+          connection_run_cmds(@connection_cmds_down)
+          connection_services(@connection_services_down, :stop)
+          connection_vpn(@connection_vpns, :stop)
         end
       end
     end
