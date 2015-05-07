@@ -183,7 +183,7 @@ module Network
         case action
           when /start/
             dputs(2){"Starting service #{service}"}
-            Service.start(service)
+            Service.restart(service)
           when /stop/
             dputs(2){"Stopping service #{service}"}
             Service.stop(service)
