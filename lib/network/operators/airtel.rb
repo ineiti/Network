@@ -1,8 +1,6 @@
 module Network
   module Operator
     class Airtel < Stub
-      attr_accessor :device, :credit_left, :internet_left
-
       @@credit=[
           {cost: 200, volume: 5_000_000, code: 15},
           {cost: 250, volume: 10_000_000, code: 10},
@@ -23,6 +21,7 @@ module Network
         # TODO: once serialmodem turns into a class, add an observer here
         device.serial_sms_new.push(Proc.new { |sms| new_sms(sms) })
         device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
+        @services = %i(connection sms ussd credit promotion umts)
       end
 
       def new_sms(sms)

@@ -70,6 +70,7 @@ module Network
 =end
     class Stub
       attr_accessor :connection_type, :last_promotion
+      attr_reader :credit_left, :internet_left, :services
       extend HelperClasses::DPuts
       include Observable
 
@@ -79,6 +80,7 @@ module Network
         @connection_type = CONNECTION_ALWAYS
         @internet_left = Network::Operator.start_loaded ? 100_000_000 : -1
         @credit_left = -1
+        @services = {}
       end
 
       # (credit|internet)_(added_total)

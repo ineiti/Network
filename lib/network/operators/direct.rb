@@ -1,6 +1,11 @@
 module Network
   module Operator
     class Direct < Stub
+      def initialize(device)
+        super(device)
+        @services = %i(connection)
+      end
+
       def internet_left
         1_000_000_000
       end

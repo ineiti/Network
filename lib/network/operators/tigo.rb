@@ -1,8 +1,6 @@
 module Network
   module Operator
     class Tigo < Stub
-      attr_accessor :credit_left, :internet_left
-
       @@credit=[
           {cost: 150, volume: 3_000_000, code: 100},
           {cost: 300, volume: 15_000_000, code: 200},
@@ -32,6 +30,7 @@ module Network
         # TODO: once serialmodem turns into a class, add an observer here
         device.serial_sms_new.push(Proc.new { |sms| new_sms(sms) })
         device.serial_ussd_new.push(Proc.new { |code, str| new_ussd(code, str) })
+        @services = %i(connection sms ussd credit promotion umts)
       end
 
       def last_promotion_set(value)

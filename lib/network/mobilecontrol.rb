@@ -73,6 +73,12 @@ module Network
         when /operator/
           @operator = @device.operator
           @operator.add_observer(self, :update_operator)
+          @operator.services.index(:credit) and
+              update_operator(:credit_total, @operator.credit_left)
+          @operator.services.index(:promotion) and
+              update_operator(:internet_total, @operator.internet_left)
+          @operator.services.index(:auto_connect) and
+              update_operator(:internet_total, @operator.internet_left)
           log_msg :MobileControl, "Found operator #{@operator}"
         when /down/
           log_msg :MobileControl, "Downing device #{@device}"
@@ -171,7 +177,7 @@ module Network
       return unless str
       if str
         str.split("\n").each { |cmd|
-          dputs(2){"Running cmd #{cmd}"}
+          dputs(2) { "Running cmd #{cmd}" }
           System.run_str(cmd)
         }
       end
@@ -182,10 +188,10 @@ module Network
       str.split(' ').each { |service|
         case action
           when /start/
-            dputs(2){"Starting service #{service}"}
+            dputs(2) { "Starting service #{service}" }
             Service.restart(service)
           when /stop/
-            dputs(2){"Stopping service #{service}"}
+            dputs(2) { "Stopping service #{service}" }
             Service.stop(service)
         end
       }
@@ -193,13 +199,13 @@ module Network
 
     def connection_vpn(vpns, action)
       return unless vpns
-      vpns.split(' ').each{|vpn_name|
+      vpns.split(' ').each { |vpn_name|
         case action
           when /start/
-            dputs(2){"Starting openvpn #{vpn_name}"}
+            dputs(2) { "Starting openvpn #{vpn_name}" }
             Service.restart("openvpn@#{vpn_name}")
           when /stop/
-            dputs(2){"Stopping openvpn #{vpn_name}"}
+            dputs(2) { "Stopping openvpn #{vpn_name}" }
             Service.stop("openvpn@#{vpn_name}")
         end
       }
@@ -235,13 +241,13 @@ module Network
       # Do some actions when the connection changes
       if old != @state_now
         if @state_now == Device::CONNECTED
-          log_msg :MobileControl, "Connection goes up, doing cmds: #{@connection_cmds_up} " +
+          log_msg :MobileControl, "Connection goes up, doing cmds: #{@connection_cmds_up.inspect} " +
                                     "services: #{@connection_services_up}, vpn: #{@connection_vpns}"
           connection_run_cmds(@connection_cmds_up)
           connection_services(@connection_services_up, :start)
           connection_vpn(@connection_vpns, :start)
         elsif old == Device::CONNECTED
-          log_msg :MobileControl, "Connection goes down, doing cmds: #{@connection_cmds_up} " +
+          log_msg :MobileControl, "Connection goes down, doing cmds: #{@connection_cmds_down.inspect} " +
                                     "services: #{@connection_services_down}, vpn: #{@connection_vpns}"
           connection_run_cmds(@connection_cmds_down)
           connection_services(@connection_services_down, :stop)

@@ -128,6 +128,7 @@ begin
         end
 
         def down
+          connection_stop
           dputs(2) { 'Downing Serial-module' }
           if @thread_operator
             @thread_operator.kill
