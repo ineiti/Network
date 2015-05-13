@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
-  s.name        = 'Network'
-  s.version     = '0.2.0'
+  s.name        = 'network'
+  s.version     = '0.3.0'
   s.date        = '2015-04-06'
   s.summary     = "Network-internet access"
   s.description = "Internet access through different modems and access"
@@ -12,9 +12,9 @@ Gem::Specification.new do |s|
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.require_paths = ['lib']
 
-  s.add_runtime_dependency 'hilinkmodem', '~> 0.2'
-  s.add_runtime_dependency 'serialmodem', '~> 0.2'
-  s.add_runtime_dependency 'helperclasses', '~> 0.2'
+  s.add_runtime_dependency 'hilink_modem', '~> 0.3'
+  s.add_runtime_dependency 'serial_modem', '~> 0.3'
+  s.add_runtime_dependency 'helper_classes', '~> 0.3'
   s.homepage    = 'https://github.com/ineiti/Network'
   s.license       = 'GPLv3'
 end
