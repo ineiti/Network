@@ -1,7 +1,7 @@
-require 'helperclasses'
+require 'helper_classes'
 
 begin
-  require 'hilinkmodem'
+  require 'hilink_modem'
 
   module Network
     module Device

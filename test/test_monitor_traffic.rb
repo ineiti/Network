@@ -1,5 +1,5 @@
 DEBUG_LVL=2
-require 'helperclasses/dputs'
+require 'helper_classes/dputs'
 require 'network/monitor/traffic'
 require 'network/monitor/traffic_user'
 include Network::Monitor

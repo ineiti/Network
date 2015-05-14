@@ -1,4 +1,4 @@
-require 'helperclasses'
+require 'helper_classes'
 require 'erb'
 
 module Network

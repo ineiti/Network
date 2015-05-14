@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'helperclasses'
+require 'helper_classes'
 require 'fileutils'
 require 'tmpdir'
 require_relative 'traffic_user'

@@ -1,4 +1,4 @@
-require 'helperclasses/dputs'
+require 'helper_classes/dputs'
 require 'json'
 
 module Network

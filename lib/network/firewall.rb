@@ -1,4 +1,4 @@
-include 'helperclasses'
+include 'helper_classes'
 
 module Network
   module Firewall

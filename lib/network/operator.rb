@@ -1,4 +1,4 @@
-require 'helperclasses/system.rb'
+require 'helper_classes/system.rb'
 require 'observer'
 
 module Network

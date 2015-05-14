@@ -1,7 +1,7 @@
 DEBUG_LVL=2
 
 require 'network'
-require 'helperclasses'
+require 'helper_classes'
 
 $dev = Network::Device.search_dev({uevent:{driver: 'option'}}).first or exit
 

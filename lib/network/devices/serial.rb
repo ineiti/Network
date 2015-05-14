@@ -1,7 +1,7 @@
-require 'helperclasses'
+require 'helper_classes'
 
 begin
-  require 'serialmodem'
+  require 'serial_modem'
 
   module Network
     module Device

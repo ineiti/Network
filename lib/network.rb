@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby -wKU
 # Replacement for LibNet
 
-require 'helperclasses'
+require 'helper_classes'
 
 include HelperClasses::ArraySym
 class Array

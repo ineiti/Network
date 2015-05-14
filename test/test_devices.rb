@@ -1,7 +1,7 @@
 DEBUG_LVL = 2
 require 'network'
 require 'drb/drb'
-require 'helperclasses/dputs'
+require 'helper_classes/dputs'
 include HelperClasses::DPuts
 
 trap('SIGINT') {

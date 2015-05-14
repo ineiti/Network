@@ -1,5 +1,5 @@
 require 'chunky_png'
-require 'helperclasses'
+require 'helper_classes'
 require 'time'
 
 include HelperClasses
