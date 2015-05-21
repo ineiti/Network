@@ -132,7 +132,7 @@ module Network
         ussd_send("*123*#{code}#") or return nil
       end
 
-      def credit_send(nbr, credit, pass = '0000')
+      def credit_send(nbr, credit, pass = '1234')
         ussd_send("*190*#{pass}*#{nbr}*#{credit}#") or return nil
       end
 
