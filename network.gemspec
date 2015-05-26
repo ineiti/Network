@@ -15,6 +15,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency 'hilink_modem', '0.3.1'
   s.add_runtime_dependency 'serial_modem', '0.3.1'
   s.add_runtime_dependency 'helper_classes', '0.3.1'
+  s.add_runtime_dependency 'chunky_png', '1.3.4'
+
   s.homepage    = 'https://github.com/ineiti/Network'
   s.license       = 'GPLv3'
 end

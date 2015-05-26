@@ -3,19 +3,24 @@ require 'helper_classes'
 module Network
   module Device
     class Simulation < Stub
-      attr_accessor :connection_status
+      attr_accessor :connection_status, :serial_sms_new, :serial_sms,
+                    :serial_ussd_new
+
       include HelperClasses::DPuts
       @ids = [{bus: 'simulation', uevent: {interface: 'simul0'}}]
-      @credit = 100
-      @connection = false
-      @sms = []
-      @sms_index = 0
 
       def initialize(dev)
         dputs(2) { 'Got a new simulation device' }
         super(dev)
         @operator = Operator.search_name(:simulation, self)
         @connection_status = DISCONNECTED
+        @credit = 100
+        @connection = false
+        @sms = []
+        @sms_index = 0
+        @serial_sms_new = []
+        @serial_ussd_new = []
+        @serial_sms = []
       end
 
       def connection_may_stop
@@ -71,6 +76,9 @@ module Network
       end
 
       def sms_delete(index)
+      end
+
+      def ussd_send(msg)
       end
 
       def traffic_stats

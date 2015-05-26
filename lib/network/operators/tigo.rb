@@ -19,7 +19,11 @@ module Network
         super(device)
         # If there is not at least 50 CFAs left, Tigo will not connect!
         @tigo_base_credit = 50
-        @last_promotion = Entities.Statics.get(:Tigo).data_str.to_i
+        if Kernel.const_defined? :Entities
+          @last_promotion = Entities.Statics.get(:Tigo).data_str.to_i
+        else
+          @last_promotion = 0
+        end
 
         # If there is less than 25MB left, chances are that we need to reconnect
         # every 500kB!
@@ -36,7 +40,9 @@ module Network
       def last_promotion_set(value)
         log_msg :Tigo, "Updating last_promotion to #{value}"
         @last_promotion = value
-        Entities.Statics.get(:Tigo).data_str = value
+        if Kernel.const_defined? :Entities
+          Entities.Statics.get(:Tigo).data_str = value
+        end
       end
 
       def new_sms(sms)
@@ -49,33 +55,35 @@ module Network
               (exp = {k: 3, M: 6, G: 9}[mult[0].to_sym]) and
                   bytes = (bytes.to_f * 10 ** exp).to_i
               dputs(3) { "Got internet: #{bytes} :: #{str}" }
-              internet_total bytes.to_i
+              internet_total(bytes.to_i)
               treated = true
             elsif str =~ /Vous n avez aucun abonnement/
               dputs(3) { "Got internet-none: 0 :: #{str}" }
-              internet_total 0
-              last_promotion_set 0
+              internet_total(0)
+              last_promotion_set(0)
               treated = true
             end
           else
             if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
-              credit_added left[1].to_i
+              @credit_left < 0 and @credit_left = 0
+              credit_added(left[1].to_i)
             elsif int = str.match(/Souscription reussie:.* ([0-9]+)\s*([MG]B)/)
-              internet_added str_to_internet(int[1], int[2])
+              @internet_left < 0 and @internet_left = 0
+              internet_added(str_to_internet(int[1], int[2]))
             elsif str =~ /vous n avez plus de MB/
-              internet_total 0
-              last_promotion_set 0
+              internet_total(0)
+              last_promotion_set(0)
             end
         end
         if treated
-          sleep 5
-          @device.sms_delete sms._id
+          sleep(5)
+          @device.sms_delete(sms._id)
         end
       end
 
       def new_ussd(code, str)
         #dputs_func
-        ddputs(3) { "#{code} - #{str.inspect}" }
+        dputs(3) { "#{code} - #{str.inspect}" }
         if str =~ /Apologies, there has been a system error./
           log_msg :Tigo, "Saw apologies-message for #{code} - retrying"
           ussd_send code
@@ -101,7 +109,11 @@ module Network
                 last_promotion_set 0
               end
             when /^\*123/
-              update_credit_left(true)
+              if str =~ /Votre solde est ([0-9]+)\./
+                credit_total $1.to_i
+              else
+                update_credit_left(true)
+              end
             else
               case str
                 # This is Airtel, but perhaps Tigo'll have something like that, too

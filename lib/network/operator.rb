@@ -1,5 +1,6 @@
 require 'helper_classes/system.rb'
 require 'observer'
+include HelperClasses::System
 
 module Network
   module Operator
