@@ -15,7 +15,7 @@ module Network
       end
 
       def internet_cost
-        0
+        [[0,0]]
       end
 
       def credit_left

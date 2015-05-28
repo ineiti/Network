@@ -102,7 +102,7 @@ module Network
 
     def del(dev)
       #dputs_func
-      dev._path += '/.*'
+      dev._path += '.*'
       dputs(3) { "#{dev} disappeared" }
       @present.each { |d|
         dputs(3) { "Checking if #{dev} ==" }

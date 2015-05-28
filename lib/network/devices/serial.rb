@@ -49,14 +49,14 @@ begin
                   op_name = get_operator
                   if @operator = Operator.search_name(op_name, self)
                     rescue_all do
-                      log_msg :Serial, "Got new operator #{@operator}"
+                      log_msg :Serial, "#{self.object_id}: Got new operator #{@operator}"
                       changed
                       dputs(3) { "Telling observers #{self.count_observers}" }
                       notify_observers(:operator)
                     end
                     break
                   else
-                    log_msg :Serial, "Didn't find operator #{op_name}"
+                    log_msg :Serial, "#{self.object_id}: Didn't find operator #{op_name}"
                   end
                   sleep 2*i
                 }
