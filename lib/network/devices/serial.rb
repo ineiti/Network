@@ -17,12 +17,12 @@ begin
         #        {bus: 'usb', uevent: {product: '12d1/14ac'}},
         #        {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
         #        {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
-        @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs: ['ttyUSB0']}]
+        @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs: ['ttyUSB2']}]
 
         def initialize(dev)
           #dputs_func
           @connection_status = ERROR
-          setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
+          return false unless setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
           @operator = nil
           # Some operators need to reset the connection if there is only a small
           # amount of "promotion" left

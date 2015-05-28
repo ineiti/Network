@@ -2,5 +2,7 @@
 
 ACTION=="add", SUBSYSTEM=="net", RUN+="/usr/local/bin/device_udev add net %p"
 ACTION=="add", SUBSYSTEM=="usb", RUN+="/usr/local/bin/device_udev add usb %p"
+ACTION=="add", DRIVER=="option*", RUN+="/usr/local/bin/device_udev add option %p"
 ACTION=="remove", SUBSYSTEM=="net", RUN+="/usr/local/bin/device_udev del net %p"
 ACTION=="remove", SUBSYSTEM=="usb", RUN+="/usr/local/bin/device_udev del usb %p"
+ACTION=="remove", DRIVER=="option*", RUN+="/usr/local/bin/device_udev del option %p"

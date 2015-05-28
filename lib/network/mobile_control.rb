@@ -136,9 +136,9 @@ module Network
 
     def interpret_commands(msg)
       ret = []
-      msg.sub(/^cmd:/i, '').split('::').each { |cmdstr|
+      msg.sub(/^cmd\s*:\s*/i, '').split('::').each { |cmdstr|
         log_msg :MobileControl, "Got command-str #{cmdstr.inspect}"
-        cmd, attr = /^ *([^ ]*) *(.*) *$/.match(cmdstr)[1..2]
+        cmd, attr = cmdstr.strip.split(/\s+/)
         case cmd.downcase
           when /^status$/
             disk_usage = %x[ df -h / | tail -n 1 ].gsub(/ +/, ' ').chomp

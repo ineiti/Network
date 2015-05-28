@@ -43,6 +43,11 @@ module Network
           ret = {bus: 'usb', path: path}
           catchpath or ret.merge!({uevent: file_to_hash("#{sysenv}/uevent"),
                                    dirs: get_dirs(sysenv)})
+        when /option/
+          ret = {bus: 'usb', path: path}
+          catchpath or ret.merge!({uevent: file_to_hash("#{sysenv}/../uevent"),
+                                   dirs: get_dirs("#{sysenv}/..")})
+          dputs(3) { "option: #{ret}" }
         when /net/
           ret = {class: 'net', path: path}
           catchpath or ret.merge!({dirs: get_dirs(sysenv)}.
@@ -64,12 +69,25 @@ module Network
         dputs(3) { "Checking whether we find #{dev}" }
         @devices.each { |name, d|
           dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
-          if d.check_new(dev)
-            dputs(3) { "Adding device #{name} - #{dev.inspect}" }
-            @present.push (newdev = d.new(dev))
-            changed
-            notify_observers(:add, @present.last)
-            dputs(3) { 'notified observers' }
+          if d.check_compatible(dev)
+            path = dev._path
+            #dp path
+            #dp @present
+            if search_dev({path: path}).length > 0 ||
+                search_dev({path: File.dirname(path)}).length > 0
+              dputs(2) { "This device #{dev} is already instantiated!" }
+            else
+              dputs(3) { "Adding device #{name} - #{dev.inspect}" }
+              newdev = d.new(dev)
+              if newdev.dev
+                @present.push(newdev)
+                changed
+                notify_observers(:add, @present.last)
+                dputs(3) { 'notified observers' }
+              else
+                log_msg :Device, "Instantiation failed for #{dev}"
+              end
+            end
           end
         }
       end
@@ -78,13 +96,17 @@ module Network
 
     def del_udev(subs, env)
       rescue_all {
-        del env_to_dev(subs, env, true)
+        del env_to_dev(subs, env)
       }
     end
 
     def del(dev)
       #dputs_func
+      dev._path += '/.*'
+      dputs(3) { "#{dev} disappeared" }
       @present.each { |d|
+        dputs(3) { "Checking if #{dev} ==" }
+        dputs(3) { "#{d}" }
         if d.check_me(dev)
           log_msg :Listener, "Deleting device #{d.dev.inspect}"
           d.down
@@ -236,7 +258,7 @@ module Network
         attributes.each { |a|
           att = a.to_sym
           d_self = dev_self[att]
-          d_other = dev[att]
+          d_other = dev && dev[att]
           dputs(3) { "Checking #{att} - #{d_self.inspect} - #{d_other.inspect}" }
           return false unless d_other
           case d_self.class.to_s
@@ -257,9 +279,11 @@ module Network
         return true
       end
 
-      def self.check_new(dev)
+      def self.check_compatible(dev)
+        #dputs_func
         dputs(3) { "New device #{dev}" }
         self.ids.each { |id|
+          dputs(3) { "Checking against #{id.inspect}" }
           return true if self.check_this(dev, id.keys, id)
         }
         return false

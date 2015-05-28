@@ -8,7 +8,7 @@ DEBUG_LVL=0
 require 'network'
 
 tests = Dir.glob('net_*.rb')
-tests = %w( operator_tigo )
+tests = %w( device )
 
 $LOAD_PATH.push '.'
 tests.each { |t|
