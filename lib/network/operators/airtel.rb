@@ -27,7 +27,7 @@ module Network
       def new_sms(sms)
         treated = false
         case sms._number
-          when 'CPTInternet'
+          when 'CPTInternet', '342'
             if str = sms._msg
               if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[2].split
@@ -64,12 +64,12 @@ module Network
         else
           case code
             when '*137#'
-              if left = str.match(/(Solde principal|PPL)\s*([0-9\.]+)*\s*F/)
+              if left = str.match(/(Solde principal|PPL|Solde: )\s*([0-9\.]+)*\s*F/)
                 credit_total left[2].to_i
               end
             when /^\*136/
               if left = str.match(/Vous avez recharge ([0-9]+) F/)
-                credit_add left[1].to_i
+                credit_added left[1].to_i
               end
             else
               case str
