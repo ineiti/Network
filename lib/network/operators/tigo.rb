@@ -46,7 +46,6 @@ module Network
       end
 
       def new_sms(sms)
-        treated = false
         str = sms._msg or return
         case sms._number
           when 'CPTInternet'
@@ -56,12 +55,10 @@ module Network
                   bytes = (bytes.to_f * 10 ** exp).to_i
               dputs(3) { "Got internet: #{bytes} :: #{str}" }
               internet_total(bytes.to_i)
-              treated = true
             elsif str =~ /Vous n avez aucun abonnement/
               dputs(3) { "Got internet-none: 0 :: #{str}" }
               internet_total(0)
               last_promotion_set(0)
-              treated = true
             end
           else
             if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
@@ -74,10 +71,6 @@ module Network
               internet_total(0)
               last_promotion_set(0)
             end
-        end
-        if treated
-          sleep(5)
-          @device.sms_delete(sms._id)
         end
       end
 

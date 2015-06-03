@@ -25,21 +25,20 @@ module Network
       end
 
       def new_sms(sms)
-        treated = false
         case sms._number
           when 'CPTInternet', '342'
             if str = sms._msg
               if left = str.match(/(Votre solde est de|Il vous reste) ([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[2].split
                 internet_total str_to_internet bytes, mult
-                treated = true
               elsif left = str.match(/(Vous avez achete le forfait) ([0-9\.]+\s*.[oObB])/)
                 bytes, mult = left[2].split
-                internet_add str_to_internet bytes, mult
-                treated = true
+                internet_added str_to_internet bytes, mult
+              elsif left = str.match(/([0-9\.]+\s*.[oObB]) jusqu/m)
+                bytes, mult = left[1].split
+                internet_total str_to_internet bytes, mult
               elsif str =~ /Vous n avez aucun abonnement/
                 internet_total 0
-                treated = true
               end
             end
           when '432'
@@ -49,10 +48,6 @@ module Network
                   credit_add credit[1].to_i
                 end
             end
-        end
-        if treated
-          sleep 5
-          @device.sms_delete sms._id
         end
       end
 
