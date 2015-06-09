@@ -290,7 +290,7 @@ module Network
       dputs(3) { "SMS is: #{sms.inspect}" }
       Kernel.const_defined?(:SMSs) && SMSs.create(sms)
       rescue_all do
-        if sms._msg =~ /^cmd:/i
+        if sms._msg =~ /^cmd/i
           dputs(2) { "Working on SMS #{sms.inspect}" }
           if (ret = interpret_commands(sms._msg))
             log_msg :MobileControl, "Sending to #{sms._number} - #{ret.inspect}"
