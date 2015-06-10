@@ -70,7 +70,7 @@ module Network
         @devices.each { |name, d|
           dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
           if d.check_compatible(dev)
-            path = dev._path
+            path = dev._path.to_s
             #dp path
             #dp @present
             if search_dev({path: path}).length > 0 ||
