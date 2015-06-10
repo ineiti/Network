@@ -78,7 +78,7 @@ module Network
             dputs(3) { "#{t}: #{advanced} - #{traffic} - #{traffic_host._last_traffic}" }
             rxtx = traffic.zip(traffic_host._last_traffic).
                 collect { |a, b| a.to_i - b.to_i }
-            th[len+index] = th[len+index].zip(rxtx).collect { |a, b| a + b }
+            th[len+index] = th[len+index].zip(rxtx).collect { |a, b| a.to_i + b.to_i }
             dputs(3) { "#{len} - #{index} - #{rxtx} - #{th[len+index]}" }
             traffic_host[t] = th
           }
@@ -98,7 +98,12 @@ module Network
         def update(new_values = nil)
           #dputs_func
           if !new_values
-            new_values = Traffic.measure_hosts
+            if System.ntpdoffset
+              new_values = Traffic.measure_hosts
+            else
+              dputs(2) { 'Not updating traffic - ntpd not yet synched' }
+              return
+            end
           end
           dputs(3) { "New values: #{new_values}" }
           new_values.each { |h, t|
