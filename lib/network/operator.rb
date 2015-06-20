@@ -1,4 +1,5 @@
 require 'helper_classes/system.rb'
+require 'helper_classes/virtual.rb'
 require 'observer'
 include HelperClasses::System
 
@@ -70,8 +71,10 @@ module Network
       :has_promo, :user_cost_max
 =end
     class Stub
-      attr_accessor :connection_type, :last_promotion
-      attr_reader :credit_left, :internet_left, :services
+      attr_accessor :connection_type, :last_promotion, :cash_password
+      attr_reader :credit_left, :internet_left, :cash_left, :services
+      virtual :cash_update, :cash_send, :cash_to_credit
+
       extend HelperClasses::DPuts
       include Observable
 
@@ -81,6 +84,7 @@ module Network
         @connection_type = CONNECTION_ALWAYS
         @internet_left = Network::Operator.start_loaded ? 100_000_000 : -1
         @credit_left = -1
+        @cash_left = -1
         @services = {}
       end
 

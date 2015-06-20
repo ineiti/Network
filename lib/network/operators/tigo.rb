@@ -60,6 +60,14 @@ module Network
               internet_total(0)
               last_promotion_set(0)
             end
+          when 'TigoCash'
+            if str =~ /Solde Tigo Cash: ([0-9]+) CFA/i
+              @cash_left = $1
+              log_msg :Tigo_cash, "New Tigo cash: #{@cash_left}"
+            elsif str =~ /(.*). Votre nouveau solde est de ([0-9]*) CFA/
+              @cash_left = $2
+              log_msg :Tigo_cash, "Transfer: #{$1} - New cash: #{$2}"
+            end
           else
             if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
               @credit_left < 0 and @credit_left = 0
@@ -86,7 +94,6 @@ module Network
               if left = str.match(/([0-9\.]+)*\s*CFA/)
                 credit_total left[1].to_i
               end
-
             when '*128#'
               dputs(3) { "Got string #{str}" }
               if left = str.match(/([0-9\.]+\s*.[oObB])/)
@@ -139,6 +146,23 @@ module Network
 
       def credit_send(nbr, credit, pass = '1234')
         ussd_send("*190*#{pass}*#{nbr}*#{credit}#") or return nil
+      end
+
+      def cash_update(force = false)
+        if (force || !@last_cash) ||
+            (Time.now - @last_cash >= 300)
+          ussd_send("*800*4*1*#{@cash_password}#")
+          @last_cash = Time.now
+        end
+        return @cash_left
+      end
+
+      def cash_send(number, amount)
+        ussd_send("*800*1*#{number}*#{amount}*#{@cash_password}")
+      end
+
+      def cash_to_credit(amount)
+
       end
 
       def update_internet_left(force = false)

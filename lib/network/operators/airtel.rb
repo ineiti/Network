@@ -60,11 +60,11 @@ module Network
           case code
             when '*137#'
               if left = str.match(/(Solde principal|PPL|Solde: )\s*([0-9\.]+)*\s*F/)
-                credit_total left[2].to_i
+                credit_total(left[2].to_i)
               end
             when /^\*136/
               if left = str.match(/Vous avez recharge ([0-9]+) F/)
-                credit_added left[1].to_i
+                credit_added(left[1].to_i)
               end
             else
               case str
