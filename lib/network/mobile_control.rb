@@ -274,9 +274,13 @@ module Network
       end
     end
 
+    # Sends en email as soon as the NTP is synchronized, but doesn't wait longer than
+    # 60 seconds
     def send_email
-      Kernel.const_defined?(:MobileInfo) and
-          MobileInfo.send_email
+      System.ntpd_wait(60) do
+        Kernel.const_defined?(:MobileInfo) and
+            MobileInfo.send_email
+      end
     end
 
     def send_status(msg = nil)
