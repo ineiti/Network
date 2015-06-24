@@ -161,6 +161,7 @@ module Network
 
         # Serialize internal data
         def save_json
+          log_msg :TrafficUser, "Saving json"
           {traffic: @traffic,
            last_update: @last_update}.to_json
         end
