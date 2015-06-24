@@ -160,6 +160,10 @@ module Network
             return false
           when /^charge/
             recharge_all(attr)
+          when /^update_left/
+            @operator.update_internet_left(true)
+            @operator.update_credit_left(true)
+            return false
         end
       }
       ret.length == 0 ? nil : ret
