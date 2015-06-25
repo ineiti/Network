@@ -73,7 +73,7 @@ begin
         def connection_start
           dputs(3) { 'Starting connection' }
           @connection_status = CONNECTING
-          Kernel.system("netctl restart #{@netctl_dev}")
+          Kernel.system("netctl start #{@netctl_dev}")
         end
 
         def connection_restart
