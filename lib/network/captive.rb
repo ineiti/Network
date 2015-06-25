@@ -298,6 +298,7 @@ module Network
 # This can be called from time to time to check on idle people
     def cleanup
       return if @cleanup_skip
+      return unless @device && @operator
       dputs_func
 
       if @device.connection_status == Device::DISCONNECTED
