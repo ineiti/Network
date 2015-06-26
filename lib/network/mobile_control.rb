@@ -181,7 +181,6 @@ module Network
       end
       @state_goal = Device::CONNECTED
       @state_error = 0
-      send_email
     end
 
     def disconnect
@@ -261,6 +260,7 @@ module Network
           connection_run_cmds(@connection_cmds_up)
           connection_services(@connection_services_up, :start)
           connection_vpn(@connection_vpns, :start)
+          send_email
         elsif old == Device::CONNECTED
           log_msg :MobileControl, "Connection goes down, doing cmds: #{@connection_cmds_down.inspect} " +
                                     "services: #{@connection_services_down}, vpn: #{@connection_vpns}"
@@ -292,10 +292,8 @@ module Network
     # Sends en email as soon as the NTP is synchronized, but doesn't wait longer than
     # 60 seconds
     def send_email
-      dp "sending email"
       Kernel.const_defined?(:MobileInfo) and
           System.ntpd_wait(60) do
-            dp "ntp synched, sending"
             MobileInfo.send_email
           end
     end
