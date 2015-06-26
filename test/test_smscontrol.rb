@@ -25,7 +25,7 @@ catch :ctrl_c do
   MobileControl.check_connection
   puts MobileControl.state_to_s
 
-  MobileControl.make_connection
+  MobileControl.connect
   puts MobileControl.state_to_s
 
   while MobileControl.state_now != MODEM_CONNECTED

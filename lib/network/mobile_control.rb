@@ -103,13 +103,13 @@ module Network
             log_msg :MobileControl, "Making sure we're connected #{@state_goal}"
             if @state_goal != Device::CONNECTED
               send_status("internet++: #{add}")
-              make_connection
+              connect
             end
           end
         when /internet_total/
           if @state_goal == UNKNOWN && @operator.internet_left > @min_traffic
             log_msg :MobileControl, 'Enough internet, connecting'
-            make_connection
+            connect
             return
           elsif @state_goal != Device::CONNECTED || @operator.internet_left > @min_traffic
             return
@@ -145,7 +145,7 @@ module Network
             ret.push "stat: #{System.run_str('hostname').chomp}:"+
                          " #{state_to_s} :: #{disk_usage} :: #{Time.now.strftime('%y%m%d-%H%M')}"
           when /^connect/
-            make_connection
+            connect
           when /^disconnect/
             @state_goal = Device::DISCONNECTED
           when /^bash:/
@@ -169,12 +169,23 @@ module Network
       ret.length == 0 ? nil : ret
     end
 
-    def make_connection
-      #@operator.update_internet_left(true)
-      #@operator.update_credit_left(true)
+    def connect(force = false)
+      return if operator_missing?
+      if force
+        if @operator.internet_left.to_i <= 1_000_000
+          @operator.internet_total( 100_000_000 )
+        end
+      else
+        #@operator.update_internet_left(true)
+        #@operator.update_credit_left(true)
+      end
       @state_goal = Device::CONNECTED
       @state_error = 0
       send_email
+    end
+
+    def disconnect
+      @state_goal = Device::DISCONNECTED
     end
 
     def connection_run_cmds(str)
@@ -281,8 +292,10 @@ module Network
     # Sends en email as soon as the NTP is synchronized, but doesn't wait longer than
     # 60 seconds
     def send_email
+      dp "sending email"
       Kernel.const_defined?(:MobileInfo) and
           System.ntpd_wait(60) do
+            dp "ntp synched, sending"
             MobileInfo.send_email
           end
     end
