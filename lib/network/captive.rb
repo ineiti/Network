@@ -396,17 +396,17 @@ module Network
       @ip_list.clear
       ips_connected.each { |ip|
         log_ "Re-connecting #{ip}"
-        ip_forward ip, true
+        ip_forward(ip, true)
         Monitor::Traffic.ip_add(ip, name)
       }
       @mac_list.each { |mac|
         log "Accepting mac #{mac}"
-        mac_accept mac
+        mac_accept(mac)
       }
 
       if @restricted
         log_ "Setting restrictions of #{@restricted.inspect}"
-        restriction_set @restricted
+        restriction_set(@restricted)
       end
     end
 
@@ -417,9 +417,9 @@ module Network
 # Restriction for a particular center - should be made more general...
     def restr_man(net, block)
       %w( 10.1.0.0/24 10.1.8.0/21 10.2.8.0/21 ).each { |default|
-        ip_drop default, block
+        ip_drop(default, block)
       }
-      ip_accept net, block
+      ip_accept(net, block)
     end
 
     def restriction_set(rest = nil)
@@ -442,7 +442,7 @@ module Network
     end
 
     def user_connected(name)
-      @users_conn.has_key? name.to_s
+      @users_conn.has_key?(name.to_s)
     end
 
     def ips_connected
@@ -453,7 +453,7 @@ module Network
       @device and @device.connection_start
       name = n.to_s
 
-      if user_connected name
+      if user_connected(name)
         if @users_conn[name] == ip
           log_ "User #{name} already connected from #{ip}"
           return
@@ -467,12 +467,12 @@ module Network
         end
       end
 
-      same_ip = @users_conn.key ip
+      same_ip = @users_conn.key(ip)
       log_ "Connecting user #{name} - #{ip}"
       @users_conn[name] = ip
 
       same_ip and user_disconnect(same_ip, ip)
-      ip_forward ip, true
+      ip_forward(ip, true)
       Monitor::Traffic.ip_add(ip, name)
     end
 
@@ -489,7 +489,7 @@ module Network
 
     def users_disconnect_all
       @users_conn.dup.each { |name, ip|
-        user_disconnect name, ip
+        user_disconnect(name, ip)
       }
     end
 
@@ -499,9 +499,9 @@ module Network
 
       ip or (return unless ip = @users_conn[name])
       log_ "really disconnecting #{name.inspect} from #{ip}"
-      @users_conn.delete name
-      ip_forward ip, false
-      Monitor::Traffic.ip_del_name name
+      @users_conn.delete(name)
+      ip_forward(ip, false)
+      Monitor::Traffic.ip_del_name(name)
 
       @users_conn.length == 0 and @device and @device.connection_may_stop
     end

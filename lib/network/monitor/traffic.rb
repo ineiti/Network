@@ -116,8 +116,8 @@ module Network
         }
       end
 
-      def ipt(*args)
-        System.iptables("-t #{@table} #{args.join(' ')}")
+      def ipt(*args, check: false)
+        System.iptables("-t #{@table} #{args.join(' ')}", check: check)
       end
 
       def measure_hosts
@@ -199,26 +199,26 @@ module Network
           count="#{prefix}_#{@table_count}"
           # Cleaning up
           if ipt('-L -n') =~ /#{count}/
-            ld 'Cleaning up'
+            ld('Cleaning up')
             while ipt("-L #{mangle} -nv") =~ / #{count} /
-              ipt '-D', mangle, '-j', count
+              ipt('-D', mangle, '-j', count)
             end
-            ipt '-F', count
-            ipt '-X', count
+            ipt('-F', count)
+            ipt('-X', count)
           end
 
-          ld 'Creating new chain'
-          ipt '-N', count
-          ipt '-I', mangle, '-j', count
+          ld('Creating new chain')
+          ipt('-N', count)
+          ipt('-I', mangle, '-j', count)
 
           @vlans.each { |v|
-            ipt '-A', count, dir, v, target, '192.168.0.0/16 -j RETURN'
-            ipt '-A', count, dir, v, '-j RETURN'
+            ipt('-A', count, dir, v, target, '192.168.0.0/16 -j RETURN')
+            ipt('-A', count, dir, v, '-j RETURN')
           }
-          ipt '-A', count, '-s 192.168.0.0/16 -d 192.168.0.0/16 -j RETURN'
+          ipt('-A', count, '-s 192.168.0.0/16 -d 192.168.0.0/16 -j RETURN')
           @hosts.each { |h|
-            ipt '-A', count, target, @host_ips[h.to_sym]
-            ipt '-A', count, target_other, @host_ips[h.to_sym]
+            ipt('-A', count, target, @host_ips[h.to_sym])
+            ipt('-A', count, target_other, @host_ips[h.to_sym])
           }
         }
       end
@@ -231,8 +231,16 @@ module Network
          %w( POST -o -s )].each { |prefix, dir, target|
           count="#{prefix}_COUNT"
           target_other = (target == '-d') ? '-s' : '-d'
-          ipt '-A', count, target, ip
-          ipt '-A', count, target_other, ip
+          if ipt('-C', count, target, ip, check: true)
+            log_msg(:traffic, "Entry for #{ip} already here")
+            ipt('-D', count, target, ip)
+          end
+          ipt('-A', count, target, ip)
+          if ipt('-C', count, target_other, ip, check: true)
+            log_msg(:traffic, "Entry for #{ip} already here")
+            ipt('-D', count, target_other, ip)
+          end
+          ipt('-A', count, target_other, ip)
         }
       end
 
@@ -242,8 +250,8 @@ module Network
          %w( POST -o -s )].each { |prefix, dir, target|
           count="#{prefix}_COUNT"
           target_other = (target == '-d') ? '-s' : '-d'
-          ipt '-D', count, target, ip
-          ipt '-D', count, target_other, ip
+          ipt('-D', count, target, ip)
+          ipt('-D', count, target_other, ip)
         }
         @host_ips.delete(name)
         @hosts.delete name
