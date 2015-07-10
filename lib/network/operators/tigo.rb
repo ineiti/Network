@@ -69,7 +69,7 @@ module Network
               log_msg :Tigo_cash, "Transfer: #{$1} - New cash: #{$2}"
             end
           else
-            if left = str.match(/Vous avez recu ([0-9\.]+).00 CFA/)
+            if left = str.match(/Vous avez \w* ([0-9\.]+).00 CFA/)
               @credit_left < 0 and @credit_left = 0
               credit_added(left[1].to_i)
             elsif int = str.match(/Souscription reussie:.* ([0-9]+)\s*([MG]B)/)
