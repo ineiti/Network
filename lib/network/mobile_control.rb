@@ -161,12 +161,17 @@ module Network
           when /^charge/
             recharge_all(attr)
           when /^update_left/
-            @operator.update_internet_left(true)
-            @operator.update_credit_left(true)
+            update_left
             return false
         end
       }
       ret.length == 0 ? nil : ret
+    end
+
+    def update_left
+      return if operator_missing?
+      @operator.update_internet_left(true)
+      @operator.update_credit_left(true)
     end
 
     def connect(force = false)
