@@ -68,6 +68,10 @@ module Network
               @cash_left = $2
               log_msg :Tigo_cash, "Transfer: #{$1} - New cash: #{$2}"
             end
+          when '192'
+            if str =~ /Votre solde est de ([0-9]+)\./
+              credit_total $1.to_i
+            end
           else
             if left = str.match(/Vous avez \w* ([0-9\.]+).00 CFA/)
               @credit_left < 0 and @credit_left = 0
