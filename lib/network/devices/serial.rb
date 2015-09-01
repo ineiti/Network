@@ -17,7 +17,7 @@ begin
         #        {bus: 'usb', uevent: {product: '12d1/14ac'}},
         #        {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
         #        {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
-        @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs: ['ttyUSB2']}]
+        @ids = [{bus: 'usb', uevent: {driver: 'option'}}]
 
         def initialize(dev)
           #dputs_func
