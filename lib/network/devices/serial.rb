@@ -36,6 +36,7 @@ begin
             @network_dev = 'ppp0'
             @operator = Operator.search_name(:Tawali, self)
             changed
+            log_msg :SerialTawali, "#{self.object_id}: Got new operator #{@operator}"
             notify_observers(:operator)
           else
             dputs(3) { 'Not ZTE-modem' }
