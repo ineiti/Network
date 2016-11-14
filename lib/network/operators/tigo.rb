@@ -121,7 +121,7 @@ module Network
             else
               case str
                 # This is Airtel, but perhaps Tigo'll have something like that, too
-                when /epuise votre forfait Internet/
+                when /Cher client,vous n avez plus de MB/
                   internet_total 0
               end
           end
