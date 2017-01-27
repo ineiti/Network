@@ -46,7 +46,7 @@ module Network
           host = h.to_sym
           traffic_host = @traffic[host] || traffic_init(host, traffic, time)
           last_time = @traffic[host]._last_time
-          ddputs(3) { "*** Updating #{host} at time #{time} from #{last_time}" }
+          dputs(3) { "*** Updating #{host} at time #{time} from #{last_time}" }
           advanced = 0
           if !traffic_host._last_traffic || !traffic ||
               traffic_host._last_traffic.inject(:+).to_i > traffic.inject(:+).to_i
@@ -105,14 +105,14 @@ module Network
               return
             end
           end
-          ddputs(3) { "New values: #{new_values}" }
+          dputs(3) { "New values: #{new_values}" }
           new_values.each { |h, t|
             host = h.to_sym
-            ddputs(3) { "Host #{host} has #{t} traffic" }
+            dputs(3) { "Host #{host} has #{t} traffic" }
             update_host host, t
           }
           (@traffic.collect { |h, t| h } - new_values.collect { |h, t| h }).each { |h|
-            ddputs(3) { "Updating #{h} with 0 traffic" }
+            dputs(3) { "Updating #{h} with 0 traffic" }
             update_host h.to_sym, [0, 0]
           }
           dputs(3) { @traffic.inspect }
