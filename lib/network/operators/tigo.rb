@@ -1,18 +1,17 @@
 module Network
   module Operator
     class Tigo < Stub
+      # Old credit
       @@credit=[
-          {cost: 150, volume: 3_000_000, code: 100},
-          {cost: 300, volume: 15_000_000, code: 200},
-          {cost: 500, volume: 25_000_000, code: 500},
-          {cost: 800, volume: 40_000_000, code: 1111},
-          {cost: 1_500, volume: 100_000_000, code: 1500},
-          {cost: 2_500, volume: 256_000_000, code: 2424},
-          {cost: 5_000, volume: 512_000_000, code: 5030},
-          {cost: 10_000, volume: 1_000_000_000, code: 1030},
-          {cost: 20_000, volume: 2_000_000_000, code: 7777},
-          {cost: 30_000, volume: 5_000_000_000, code: 2030},
-          {cost: 50_000, volume: 10_000_000_000, code: 3030}
+          {cost: 250, volume: 10_000_000, code: 250},
+          {cost: 600, volume: 30_000_000, code: 600},
+          {cost: 1_200, volume: 70_000_000, code: 1200},
+          {cost: 2_000, volume: 120_000_000, code: 2000},
+          {cost: 3_000, volume: 256_000_000, code: 3000},
+          {cost: 12_000, volume: 1_250_000_000, code: 12000},
+          {cost: 35_500, volume: 5_000_000_000, code: 35500},
+          {cost: 60_000, volume: 10_000_000_000, code: 60000},
+          {cost: 205_000, volume: 35_000_000_000, code: 205000}
       ]
 
       def initialize(device)
@@ -184,7 +183,8 @@ module Network
       def internet_add(volume)
         cr = @@credit.find { |c| c._volume == volume } or return nil
         log_msg :Tigo, "Asking for credit #{cr._code} for volume #{volume}"
-        @device.sms_send(cr._code, 'kattir')
+        # @device.sms_send(cr._code, 'kattir')
+        @device.ussd_send("*3*#{cr._code}#")
         @credit_left -= cr._cost
         last_promotion_set cr._volume
       end
