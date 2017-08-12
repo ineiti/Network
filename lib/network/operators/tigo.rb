@@ -137,7 +137,8 @@ module Network
                 @device.connection_status == Device::CONNECTED) ||
             (Time.now - @last_credit > 3600 &&
                 @device.connection_status == Device::DISCONNECTED)
-          ussd_send('*100#')
+          ussd_send('*126#')
+          # ussd_send('*100#')
           @last_credit = Time.now
         end
         @credit_left
@@ -174,7 +175,8 @@ module Network
                 @device.connection_status == Device::CONNECTED) ||
             (Time.now - @last_traffic > 3600 &&
                 @device.connection_status == Device::DISCONNECTED)
-          ussd_send('*128#')
+          # ussd_send('*128#')
+          ussd_send('*130#')
           @last_traffic = Time.now
         end
         @internet_left
@@ -216,7 +218,7 @@ module Network
       end
 
       def self.operator_match(n)
-        n =~ /^(62203|tigo)/i
+        n =~ /^(62203|tigo|M-Budget Mobile|ortel)/i
       end
 
       def has_promo

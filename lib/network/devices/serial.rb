@@ -17,11 +17,12 @@ begin
         #        {bus: 'usb', uevent: {product: '12d1/14ac'}},
         #        {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
         #        {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
-        @ids = [{bus: 'usb', uevent: {driver: 'option'}}]
+        @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs:['ttyUSB0']}]
 
         def initialize(dev)
-          #dputs_func
+          # dputs_func
           @connection_status = ERROR
+          dp "ID is #{self.object_id}"
           return false unless setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
           @operator = nil
           # Some operators need to reset the connection if there is only a small
@@ -31,7 +32,7 @@ begin
           super(dev)
 
           if dev._uevent._product =~ /19d2.fff1.0/
-            dputs(3) { 'ZTE-modem' }
+            ddputs(3) { 'ZTE-modem' }
             @netctl_dev = 'cdma'
             @network_dev = 'ppp0'
             @operator = Operator.search_name(:Tawali, self)
@@ -39,7 +40,7 @@ begin
             log_msg :SerialTawali, "#{self.object_id}: Got new operator #{@operator}"
             notify_observers(:operator)
           else
-            dputs(3) { 'Not ZTE-modem' }
+            ddputs(3) { 'Not ZTE-modem' }
             @netctl_dev = 'umts'
             @network_dev = 'ppp0'
             @thread_operator = Thread.new {

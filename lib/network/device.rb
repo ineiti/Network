@@ -63,7 +63,7 @@ module Network
     end
 
     def add(dev)
-      #dputs_func
+      # dputs_func
       newdev = nil
       HelperClasses::System.rescue_all do
         dputs(3) { "Checking whether we find #{dev}" }
