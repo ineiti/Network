@@ -75,24 +75,24 @@ begin
         def connection_start
           dputs(3) { 'Starting connection' }
           @connection_status = CONNECTING
-          Kernel.system("netctl start #{@netctl_dev}")
+          Platform.net_start(@netctl_dev)
         end
 
         def connection_restart
           dputs(3) { 'Restarting connection' }
           @connection_status = CONNECTING
-          Kernel.system("netctl restart #{@netctl_dev}")
+          Platform.net_restart(@netctl_dev)
         end
 
         def connection_stop
           dputs(3) { 'Stopping connection' }
           @connection_status = DISCONNECTING
-          Kernel.system("netctl stop #{@netctl_dev}")
+          Platform.net_stop(@netctl_dev)
         end
 
         def connection_status
           @connection_status =
-              if System.run_str("netctl status #{@netctl_dev} | grep Active") =~ /: active/
+              if Platform.net_status(@netctl_dev, @network_dev)
                 if System.run_bool "grep -q #{@network_dev} /proc/net/route"
                   CONNECTED
                 elsif System.run_bool 'pidof pppd'
@@ -100,11 +100,8 @@ begin
                 else
                   ERROR_CONNECTION
                 end
-              elsif System.run_str("netctl status #{@netctl_dev} | grep Active") =~
-                  /: (inactive|failed)/
-                DISCONNECTED
               else
-                ERROR_CONNECTION
+                DISCONNECTED
               end
         end
 

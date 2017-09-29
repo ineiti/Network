@@ -208,10 +208,10 @@ module Network
         case action
           when /start/
             dputs(2) { "Starting service #{service}" }
-            Service.restart(service)
+            Platform.restart(service)
           when /stop/
             dputs(2) { "Stopping service #{service}" }
-            Service.stop(service)
+            Platform.stop(service)
         end
       }
     end
@@ -222,10 +222,10 @@ module Network
         case action
           when /start/
             dputs(2) { "Starting openvpn #{vpn_name}" }
-            Service.restart("openvpn@#{vpn_name}")
+            Platform.restart("openvpn@#{vpn_name}")
           when /stop/
             dputs(2) { "Stopping openvpn #{vpn_name}" }
-            Service.stop("openvpn@#{vpn_name}")
+            Platform.stop("openvpn@#{vpn_name}")
         end
       }
     end

@@ -25,7 +25,7 @@ module Network
     @present = []
 
     def install_system
-      if Service.system != :MacOSX
+      if Platform.system != :MacOSX
         udev_path = File.expand_path('../../../udev', __FILE__)
         FileUtils.cp "#{udev_path}/90-network-udev.rules", '/lib/udev/rules.d'
         FileUtils.cp "#{udev_path}/device_udev", '/usr/local/bin'
