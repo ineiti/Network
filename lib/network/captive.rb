@@ -303,7 +303,7 @@ module Network
 
       if @device.connection_status == Device::DISCONNECTED
         if ips_connected.length > 0
-          if @operator.type != Operator::CONNECTION_ALWAYS
+          if @operator.connection_type != Operator::CONNECTION_ALWAYS
             log_ "Disconnecting everybody as we're not connected"
             users_disconnect_all
           else

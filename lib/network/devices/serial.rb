@@ -21,6 +21,7 @@ begin
 
         def initialize(dev)
           # dputs_func
+          @status_wait = 0
           @connection_status = ERROR
           dp "ID is #{self.object_id}"
           return false unless setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
@@ -73,21 +74,24 @@ begin
         end
 
         def connection_start
-          dputs(3) { 'Starting connection' }
+          ddputs(3) { "Starting connection #{@netctl_dev}" }
           @connection_status = CONNECTING
-          Platform.net_start(@netctl_dev)
+          Platform.net_restart(@netctl_dev)
+          @status_wait = 0
         end
 
         def connection_restart
-          dputs(3) { 'Restarting connection' }
+          ddputs(3) { 'Restarting connection' }
           @connection_status = CONNECTING
           Platform.net_restart(@netctl_dev)
+          @status_wait = 0
         end
 
         def connection_stop
-          dputs(3) { 'Stopping connection' }
+          ddputs(3) { 'Stopping connection' }
           @connection_status = DISCONNECTING
           Platform.net_stop(@netctl_dev)
+          @status_wait = 0
         end
 
         def connection_status
@@ -98,7 +102,12 @@ begin
                 elsif System.run_bool 'pidof pppd'
                   CONNECTING
                 else
-                  ERROR_CONNECTION
+                  dputs(1){"#{@netctl_dev} started but no pppd or chat"}
+                  if ( @status_wait += 1 ) > 2
+                    ERROR_CONNECTION
+                  else
+                    CONNECTING
+                  end
                 end
               else
                 DISCONNECTED
