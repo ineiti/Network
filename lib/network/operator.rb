@@ -30,7 +30,7 @@ module Network
 
     def search_name(name, dev)
       #dputs_func
-      ddputs(3) { "Looking for #{name} in #{dev}" }
+      dputs(3) { "Looking for #{name} in #{dev}" }
       op = @operators.select { |k, v|
         dputs(3) { "Searching #{name} in #{k} - #{v.name.inspect}" }
         v.operator_match(name)
