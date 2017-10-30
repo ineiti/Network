@@ -1,11 +1,11 @@
 Gem::Specification.new do |s|
   s.name        = 'network'
-  s.version     = '0.3.5'
-  s.date        = '2015-06-20'
+  s.version = '0.4.0'
+  s.date = '2017-10-30'
   s.summary     = 'Network-internet access'
   s.description = 'Internet access through different modems and access'
   s.authors     = ['Linus Gasser']
-  s.email       = 'ineiti@linusetviviane.ch'
+  s.email = 'ineiti.blue'
 
   s.files         = `if [ -d '.git' ]; then git ls-files -z; fi`.split("\x0")
   s.executables   = s.files.grep(%r{^bin/}) { |f| File.basename(f) }
@@ -21,5 +21,5 @@ Gem::Specification.new do |s|
 
 
   s.homepage    = 'https://github.com/ineiti/Network'
-  s.license       = 'GPLv3'
+  s.license = 'GPL-3.0'
 end
