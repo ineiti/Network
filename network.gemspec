@@ -12,9 +12,9 @@ Gem::Specification.new do |s|
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
   s.require_paths = ['lib']
 
-  s.add_runtime_dependency 'hilink_modem', '0.3.5'
-  s.add_runtime_dependency 'serial_modem', '0.3.5'
-  s.add_runtime_dependency 'helper_classes', '0.3.5'
+  s.add_runtime_dependency 'hilink_modem', '0.4.0'
+  s.add_runtime_dependency 'serial_modem', '0.4.0'
+  s.add_runtime_dependency 'helper_classes', '0.4.0'
   s.add_runtime_dependency 'chunky_png', '1.3.4'
   s.add_runtime_dependency 'i18n', '0.7.0'
   s.add_runtime_dependency 'multi_json', '1.0.3'
