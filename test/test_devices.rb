@@ -1,4 +1,5 @@
 DEBUG_LVL = 2
+require 'bundler/setup'
 require 'network'
 require 'drb/drb'
 require 'helper_classes/dputs'

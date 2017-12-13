@@ -23,7 +23,6 @@ begin
           # dputs_func
           @status_wait = 0
           @connection_status = ERROR
-          dp "ID is #{self.object_id}"
           return false unless setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
           @operator = nil
           # Some operators need to reset the connection if there is only a small
@@ -33,7 +32,7 @@ begin
           super(dev)
 
           if dev._uevent._product =~ /19d2.fff1.0/
-            ddputs(3) { 'ZTE-modem' }
+            dputs(3) { 'ZTE-modem' }
             @netctl_dev = 'cdma'
             @network_dev = 'ppp0'
             @operator = Operator.search_name(:Tawali, self)
@@ -41,7 +40,7 @@ begin
             log_msg :SerialTawali, "#{self.object_id}: Got new operator #{@operator}"
             notify_observers(:operator)
           else
-            ddputs(3) { 'Not ZTE-modem' }
+            dputs(3) { 'Not ZTE-modem' }
             @netctl_dev = 'umts'
             @network_dev = 'ppp0'
             @thread_operator = Thread.new {
@@ -50,6 +49,7 @@ begin
                 (1..11).each { |i|
                   dputs(3) { "Searching operator #{i}" }
                   op_name = get_operator
+                  log_msg :Serial, "Searching #{i}. for operator #{op_name}"
                   if @operator = Operator.search_name(op_name, self)
                     rescue_all do
                       log_msg :Serial, "#{self.object_id}: Got new operator #{@operator}"
@@ -59,7 +59,7 @@ begin
                     end
                     break
                   else
-                    log_msg :Serial, "#{self.object_id}: Didn't find operator #{op_name}"
+                    log_msg :Serial, "#{self.object_id}: Didn't find operator ::#{op_name}::"
                   end
                   sleep 2*i
                 }
@@ -74,21 +74,21 @@ begin
         end
 
         def connection_start
-          ddputs(3) { "Starting connection #{@netctl_dev}" }
+          dputs(3) { "Starting connection #{@netctl_dev}" }
           @connection_status = CONNECTING
           Platform.net_restart(@netctl_dev)
           @status_wait = 0
         end
 
         def connection_restart
-          ddputs(3) { 'Restarting connection' }
+          dputs(3) { 'Restarting connection' }
           @connection_status = CONNECTING
           Platform.net_restart(@netctl_dev)
           @status_wait = 0
         end
 
         def connection_stop
-          ddputs(3) { 'Stopping connection' }
+          dputs(3) { 'Stopping connection' }
           @connection_status = DISCONNECTING
           Platform.net_stop(@netctl_dev)
           @status_wait = 0

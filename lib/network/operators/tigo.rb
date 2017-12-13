@@ -216,7 +216,7 @@ module Network
       end
 
       def self.operator_match(n)
-        n =~ /^(62203|tigo|M-Budget Mobile|ortel)/i
+        n =~ /(62203|tigo|ortel)/i
       end
 
       def has_promo

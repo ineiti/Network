@@ -63,16 +63,14 @@ module Network
     end
 
     def add(dev)
-      # dputs_func
       newdev = nil
       HelperClasses::System.rescue_all do
+        # dputs_func
         dputs(3) { "Checking whether we find #{dev}" }
         @devices.each { |name, d|
           dputs(4) { "Checking #{dev} for #{name}-#{d}-#{d.ids}" }
           if d.check_compatible(dev)
             path = dev._path.to_s
-            #dp path
-            #dp @present
             if search_dev({path: path}).length > 0 ||
                 search_dev({path: File.dirname(path)}).length > 0
               dputs(2) { "This device #{dev} is already instantiated!" }
@@ -210,7 +208,7 @@ module Network
       def initialize(dev)
         log_msg :Device, "Initialized device #{dev}"
         @dev = dev
-        @operator = Operator.search_name(:Direct, self)
+        @operator = Operator.search_name(:NoSIM, self)
       end
 
       def sms_inject(msg, number = '1234',
@@ -254,6 +252,7 @@ module Network
       end
 
       def self.check_this(dev, attributes, dev_self = @dev)
+        # dputs_func
         dputs(3) { "Checking #{dev} against device #{dev_self.inspect} in #{attributes.inspect}" }
         attributes.each { |a|
           att = a.to_sym
@@ -280,7 +279,7 @@ module Network
       end
 
       def self.check_compatible(dev)
-        #dputs_func
+        # dputs_func
         dputs(3) { "New device #{dev}" }
         self.ids.each { |id|
           dputs(3) { "Checking against #{id.inspect}" }

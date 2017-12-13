@@ -1,6 +1,6 @@
 module Network
   module Operator
-    class Direct < Stub
+    class MBudget < Stub
       def initialize(device)
         super(device)
         @services = %i(connection sms ussd )
@@ -36,6 +36,14 @@ module Network
 
       def user_cost_max
         Operator.cost_base + Operator.cost_shared
+      end
+
+      def self.operator_match(n)
+        n =~ /(m-budget)/i
+      end
+
+      def name
+        'M-Budget'
       end
     end
   end

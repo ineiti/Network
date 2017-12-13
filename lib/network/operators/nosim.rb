@@ -1,13 +1,13 @@
 module Network
   module Operator
-    class Direct < Stub
+    class NoSIM < Stub
       def initialize(device)
         super(device)
-        @services = %i(connection sms ussd )
+        @services = %i()
       end
 
       def internet_left
-        1_000_000_000
+        0
       end
 
       def internet_add
@@ -19,7 +19,7 @@ module Network
       end
 
       def credit_left
-        100
+        0
       end
 
       def credit_add
@@ -36,6 +36,14 @@ module Network
 
       def user_cost_max
         Operator.cost_base + Operator.cost_shared
+      end
+
+      def name
+        :NoOperator
+      end
+
+      def self.operator_match(n)
+        n =~ /(Limited Service)/i
       end
     end
   end
