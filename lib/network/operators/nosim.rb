@@ -39,7 +39,7 @@ module Network
       end
 
       def name
-        :NoOperator
+        :NoSIM
       end
 
       def self.operator_match(n)

@@ -192,44 +192,6 @@ module Network
       @state_goal = Device::DISCONNECTED
     end
 
-    def connection_run_cmds(str)
-      return unless str
-      if str
-        str.split("\n").each { |cmd|
-          dputs(2) { "Running cmd #{cmd}" }
-          System.run_str(cmd)
-        }
-      end
-    end
-
-    def connection_services(str, action)
-      return unless str
-      str.split(' ').each { |service|
-        case action
-          when /start/
-            dputs(2) { "Starting service #{service}" }
-            Platform.restart(service)
-          when /stop/
-            dputs(2) { "Stopping service #{service}" }
-            Platform.stop(service)
-        end
-      }
-    end
-
-    def connection_vpn(vpns, action)
-      return unless vpns
-      vpns.split(' ').each { |vpn_name|
-        case action
-          when /start/
-            dputs(2) { "Starting openvpn #{vpn_name}" }
-            Platform.restart("openvpn@#{vpn_name}")
-          when /stop/
-            dputs(2) { "Stopping openvpn #{vpn_name}" }
-            Platform.stop("openvpn@#{vpn_name}")
-        end
-      }
-    end
-
     def check_connection
       return if operator_missing?
       @operator.update_credit_left
@@ -262,16 +224,16 @@ module Network
         if @state_now == Device::CONNECTED
           log_msg :MobileControl, "Connection goes up, doing cmds: #{@connection_cmds_up.inspect} " +
                                     "services: #{@connection_services_up}, vpn: #{@connection_vpns}"
-          connection_run_cmds(@connection_cmds_up)
-          connection_services(@connection_services_up, :start)
-          connection_vpn(@connection_vpns, :start)
+          Platform.connection_run_cmds(@connection_cmds_up)
+          Platform.connection_services(@connection_services_up, :start)
+          Platform.connection_vpn(@connection_vpns, :start)
           send_email
         elsif old == Device::CONNECTED
           log_msg :MobileControl, "Connection goes down, doing cmds: #{@connection_cmds_down.inspect} " +
                                     "services: #{@connection_services_down}, vpn: #{@connection_vpns}"
-          connection_run_cmds(@connection_cmds_down)
-          connection_services(@connection_services_down, :stop)
-          connection_vpn(@connection_vpns, :stop)
+          Platform.connection_run_cmds(@connection_cmds_down)
+          Platform.connection_services(@connection_services_down, :stop)
+          Platform.connection_vpn(@connection_vpns, :stop)
         end
       end
     end

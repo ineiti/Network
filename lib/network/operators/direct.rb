@@ -3,7 +3,7 @@ module Network
     class Direct < Stub
       def initialize(device)
         super(device)
-        @services = %i(connection sms ussd )
+        @services = %i(connection)
       end
 
       def internet_left

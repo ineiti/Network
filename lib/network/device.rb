@@ -208,7 +208,7 @@ module Network
       def initialize(dev)
         log_msg :Device, "Initialized device #{dev}"
         @dev = dev
-        @operator = Operator.search_name(:NoSIM, self)
+        @operator = Operator.search_name(:Direct, self)
       end
 
       def sms_inject(msg, number = '1234',

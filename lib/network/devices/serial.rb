@@ -24,12 +24,12 @@ begin
           @status_wait = 0
           @connection_status = ERROR
           return false unless setup_modem(dev._dirs.find { |d| d =~ /ttyUSB/ })
-          @operator = nil
           # Some operators need to reset the connection if there is only a small
           # amount of "promotion" left
           @connection_reset = {promotion: 0, transfer: 0}
           @promotion_left = 0
           super(dev)
+          @operator = Operator.search_name(:NoSIM, self)
 
           if dev._uevent._product =~ /19d2.fff1.0/
             dputs(3) { 'ZTE-modem' }
