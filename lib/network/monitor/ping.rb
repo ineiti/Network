@@ -12,7 +12,7 @@ module Network
       extend self
 
       @log_file = '/var/log/check_hosts.log'
-      @html_dir = '/srv/http'
+      @html_dir = '/opt/http'
       @bar_size = {width: 200, height: 20}
       @host_names = {}
       @active = ChunkyPNG::Color.rgb(0x90, 0xee, 0x90)

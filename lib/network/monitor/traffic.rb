@@ -32,7 +32,7 @@ module Network
         @table = @config._table || 'mangle'
         @table_count = @config._table_count || 'COUNT'
         @old_values=[0] * ((@bw ? 3 : 0) + @vlans.length + @hosts.length)
-        @imgs_dir = @config._imgs_dir || '/srv/http/traffic'
+        @imgs_dir = @config._imgs_dir || '/opt/http/traffic'
         @thread
       end
 

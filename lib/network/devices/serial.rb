@@ -17,7 +17,8 @@ begin
         #        {bus: 'usb', uevent: {product: '12d1/14ac'}},
         #        {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
         #        {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
-        @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs:['ttyUSB0']}]
+        @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs: ['ttyUSB0']},
+                {bus: 'usb', uevent: {driver: 'usbserial_generic'}, dirs: ['ttyUSB0']}]
 
         def initialize(dev)
           # dputs_func
@@ -102,8 +103,8 @@ begin
                 elsif System.run_bool 'pidof pppd'
                   CONNECTING
                 else
-                  dputs(1){"#{@netctl_dev} started but no pppd or chat"}
-                  if ( @status_wait += 1 ) > 2
+                  dputs(1) { "#{@netctl_dev} started but no pppd or chat" }
+                  if (@status_wait += 1) > 2
                     ERROR_CONNECTION
                   else
                     CONNECTING

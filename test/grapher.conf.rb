@@ -1,5 +1,5 @@
 {
-www_images: '/srv/http/graphs',
+www_images: '/opt/http/graphs',
 bw_upper: 600000,
 bw: false,
 db: '/var/log/traffic.rrd',

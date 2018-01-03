@@ -57,7 +57,7 @@ module Network
           end
         when /add/
           if !@device && dev
-            if dev.dev._uevent and dev.dev._uevent._driver == 'option'
+            if dev.dev._uevent && dev.dev._uevent._driver =~ /(option|usbserial_generic)/
               @device = dev
               @device.add_observer(self)
               if @device.operator
