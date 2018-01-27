@@ -57,9 +57,13 @@ module Network
           end
         when /add/
           if !@device && dev
-            if dev.dev._uevent && dev.dev._uevent._driver =~ /(option|usbserial_generic)/
+            if dev.dev._uevent && dev.dev._uevent._driver =~ /(option|usbserial_generic|cdc_acm)/
               @device = dev
               @device.add_observer(self)
+              if ConfigBase.operator != [:auto]
+                dputs(2) { "Forcing operator to #{ConfigBase.operator}" }
+                @device.set_operator(ConfigBase.operator.first)
+              end
               if @device.operator
                 update(:operator)
               end
@@ -71,6 +75,7 @@ module Network
             end
           end
         when /operator/
+          dputs(2) { "got new operator #{@device.operator}" }
           @operator = @device.operator
           @operator.add_observer(self, :update_operator)
           @operator.services.index(:credit) and
@@ -178,7 +183,7 @@ module Network
       return if operator_missing?
       if force
         if @operator.internet_left.to_i <= 1_000_000
-          @operator.internet_total( 100_000_000 )
+          @operator.internet_total(100_000_000)
         end
       else
         #@operator.update_internet_left(true)
@@ -229,6 +234,7 @@ module Network
           Platform.connection_vpn(@connection_vpns, :start)
           send_email
         elsif old == Device::CONNECTED
+          dputs(2) { "New state is #{@state_now}" }
           log_msg :MobileControl, "Connection goes down, doing cmds: #{@connection_cmds_down.inspect} " +
                                     "services: #{@connection_services_down}, vpn: #{@connection_vpns}"
           Platform.connection_run_cmds(@connection_cmds_down)

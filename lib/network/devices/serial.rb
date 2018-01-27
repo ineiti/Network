@@ -18,7 +18,8 @@ begin
         #        {bus: 'usb', uevent: {product: '19d2/fff1/0'}},
         #        {bus: 'usb', uevent: {product: '12d1/1c05.*'}, dirs: ['ep_01']}]
         @ids = [{bus: 'usb', uevent: {driver: 'option'}, dirs: ['ttyUSB0']},
-                {bus: 'usb', uevent: {driver: 'usbserial_generic'}, dirs: ['ttyUSB0']}]
+                {bus: 'usb', uevent: {driver: 'usbserial_generic'}, dirs: ['ttyUSB0']},
+                {bus: 'usb', uevent: {driver: 'cdc_acm'}, dirs: ['ep_85']}]
 
         def initialize(dev)
           # dputs_func
@@ -44,29 +45,49 @@ begin
             dputs(3) { 'Not ZTE-modem' }
             @netctl_dev = 'umts'
             @network_dev = 'ppp0'
-            @thread_operator = Thread.new {
-              dputs(3) { 'Starting search for operator' }
-              rescue_all {
-                (1..11).each { |i|
-                  dputs(3) { "Searching operator #{i}" }
-                  op_name = get_operator
-                  log_msg :Serial, "Searching #{i}. for operator #{op_name}"
-                  if @operator = Operator.search_name(op_name, self)
-                    rescue_all do
-                      log_msg :Serial, "#{self.object_id}: Got new operator #{@operator}"
-                      changed
-                      dputs(3) { "Telling observers #{self.count_observers}" }
-                      notify_observers(:operator)
+            if @operator_search
+              @thread_operator = Thread.new {
+                dputs(3) { 'Starting search for operator' }
+                rescue_all {
+                  (1..11).each { |i|
+                    dputs(3) { "Searching operator #{i}/11" }
+                    op_name = get_operator
+                    log_msg :Serial, "#{i}. search for operator #{op_name}"
+                    if @operator = Operator.search_name(op_name, self)
+                      rescue_all do
+                        log_msg :Serial, "#{self.object_id}: Got new operator #{@operator}"
+                        changed
+                        dputs(3) { "Telling observers #{self.count_observers}" }
+                        notify_observers(:operator)
+                      end
+                      break
+                    else
+                      log_msg :Serial, "#{self.object_id}: Didn't find operator ::#{op_name}::"
                     end
-                    break
-                  else
-                    log_msg :Serial, "#{self.object_id}: Didn't find operator ::#{op_name}::"
-                  end
-                  sleep 2*i
+                    sleep 2*i
+                  }
                 }
               }
-            }
+            else
+              log_msg :Serial, 'Not searching operator on this device'
+              Thread.new {
+                sleep 5
+                changed
+                notify_observers(:operator)
+              }
+            end
           end
+        end
+
+        def set_operator(op)
+          log_msg :Serial, "Forcing operator to #{op}"
+          if @thread_operator
+            @thread_operator.kill
+            @thread_operator.join
+            @thread_operator = nil
+          end
+          @operator = Operator.search_name(op, self)
+          changed
         end
 
         def update(op, dev = nil)

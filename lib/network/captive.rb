@@ -450,7 +450,10 @@ module Network
     end
 
     def user_connect(n, ip, free = false)
-      @device and @device.connection_start
+      if @device.connection_status != Device::CONNECTED
+        dputs(2) { 'Going to connect' }
+        @device and @device.connection_start
+      end
       name = n.to_s
 
       if user_connected(name)

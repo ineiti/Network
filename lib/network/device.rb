@@ -211,6 +211,11 @@ module Network
         @operator = Operator.search_name(:Direct, self)
       end
 
+      def set_operator(op)
+        log_msg :Device, "Forcing operator to #{op}"
+        @operator = Operator.search_name(op, self)
+      end
+
       def sms_inject(msg, number = '1234',
                      date = Time.now.strftime('%Y-%m-%d %H:%M:%S'), index = -1)
         sms = sms_new(index, 'unread', number, date, msg)

@@ -39,7 +39,7 @@ module Network
       end
 
       def self.operator_match(n)
-        n =~ /(m-budget)/i
+        n =~ /(m-budget|mbudget)/i
       end
 
       def name
